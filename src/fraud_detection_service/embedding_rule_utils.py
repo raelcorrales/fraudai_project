@@ -9,9 +9,6 @@ from typing import List, Dict, Any, Optional
 # y tiene un método get_embedding(text: str) -> np.ndarray
 from src.fraud_detection_service.embedding_manager import EmbeddingManager
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO) # Puedes ajustar el nivel de log (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-
 # Creamos una instancia global (o pasamos una instancia) del EmbeddingManager
 # para evitar crearlo para cada llamada a load_and_embed_rules.
 # Es crucial que el model_name aquí coincida con el modelo de embedding de Ollama que has descargado
@@ -41,21 +38,21 @@ def load_and_embed_rules(model_name: str, rules_file_path: str) -> List[Dict[str
                                campo 'embedding' adicional.
     """
     if not isinstance(rules_file_path, str) or not rules_file_path:
-        logger.error("La ruta del archivo de reglas no es válida.")
+        print("La ruta del archivo de reglas no es válida.")
         return []
 
     try:
         with open(rules_file_path, 'r', encoding='utf-8') as f:
             rules = json.load(f)
-        logger.info(f"Reglas cargadas exitosamente desde: {rules_file_path}")
+        print(f"Reglas cargadas exitosamente desde: {rules_file_path}")
     except FileNotFoundError:
-        logger.error(f"Error: El archivo de reglas no se encontró en '{rules_file_path}'.")
+        print(f"Error: El archivo de reglas no se encontró en '{rules_file_path}'.")
         return []
     except json.JSONDecodeError:
-        logger.error(f"Error: No se pudo decodificar el JSON del archivo '{rules_file_path}'.")
+        print(f"Error: No se pudo decodificar el JSON del archivo '{rules_file_path}'.")
         return []
     except Exception as e:
-        logger.error(f"Error inesperado al cargar las reglas: {e}")
+        print(f"Error inesperado al cargar las reglas: {e}")
         return []
 
     embedding_manager = get_embedding_manager_instance(model_name=model_name)
@@ -70,7 +67,7 @@ def load_and_embed_rules(model_name: str, rules_file_path: str) -> List[Dict[str
             text_to_embed = f"{rule.get('description', '')} {', '.join(rule.get('keywords', []))}"
             
             if not text_to_embed.strip():
-                logger.warning(f"La regla '{rule.get('id', 'N/A')}' tiene un texto vacío para embeber. Saltando.")
+                print(f"La regla '{rule.get('id', 'N/A')}' tiene un texto vacío para embeber. Saltando.")
                 failed_embeddings_count += 1
                 continue
 
@@ -83,14 +80,14 @@ def load_and_embed_rules(model_name: str, rules_file_path: str) -> List[Dict[str
                 rule['embedding'] = rule_embedding 
                 embedded_rules.append(rule)
             else:
-                logger.warning(f"No se pudo obtener un embedding válido para la regla '{rule.get('id', 'N/A')}'.")
+                print(f"No se pudo obtener un embedding válido para la regla '{rule.get('id', 'N/A')}'.")
                 failed_embeddings_count += 1
                 continue
 
         except Exception as e:
-            logger.error(f"Error inesperado al generar embedding para la regla '{rule.get('id', 'N/A')}': {e}")
+            print(f"Error inesperado al generar embedding para la regla '{rule.get('id', 'N/A')}': {e}")
             failed_embeddings_count += 1
             continue
             
-    logger.info(f"Se generaron embeddings para {len(embedded_rules)} de {len(rules)} reglas. Fallaron: {failed_embeddings_count}.")
+    prints(f"Se generaron embeddings para {len(embedded_rules)} de {len(rules)} reglas. Fallaron: {failed_embeddings_count}.")
     return embedded_rules

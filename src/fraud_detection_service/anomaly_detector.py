@@ -8,27 +8,23 @@ from src.transaction import Transaction # Asumo que Transaction está en src/tra
 
 class AnomalyDetector(OllamaBase): # Hereda de OllamaBase
     """
-    Detector de anomalías utilizando Ollama Llama 3.2 para la detección de fraude.
+    Detector de anomalías utilizando Ollama Llama 3.1 para la detección de fraude.
     Este componente utiliza un modelo LLM para "razonar" sobre
     los detalles de la transacción y determinar si es potencialmente fraudulenta.
     En un sistema de producción, se utilizaría un modelo LLM entrenado específicamente
     para la detección de fraude, posiblemente con fine-tuning en un dataset de transacciones
     y reglas de fraude.
-    Este es un MVP que utiliza Llama 3.2 para demostrar la capacidad de razonamiento del LLM.
+    Este es un MVP que utiliza Llama 3.1 para demostrar la capacidad de razonamiento del LLM.
     En un sistema real, se podría integrar con un servicio de embeddings para generar
     embeddings de transacciones y utilizar un modelo LLM especializado en detección de fraude.
     """
     def __init__(self, model_name: str = "llama3.1", max_retries: int = 3, base_delay: float = 1.0):
         # Llama al constructor de la clase base
         super().__init__(model_name=model_name, max_retries=max_retries, base_delay=base_delay)
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        # Optionally, you could load fraud rules here if you want the LLM to reference them directly
-        # For this MVP, we'll rely on the LLM's general knowledge and the prompt.
 
     def _predict_fraud(self, embedding: np.ndarray, transaction: Transaction) -> bool:
         """
-        Simula la detección de anomalías utilizando Ollama Llama 3.2 para "razonar"
+        Simula la detección de anomalías utilizando Ollama Llama 3.1 para "razonar"
         sobre los detalles de la transacción.
         
         Args:
@@ -42,7 +38,7 @@ class AnomalyDetector(OllamaBase): # Hereda de OllamaBase
         """
         transaction_details_for_llm = transaction.to_string_for_embedding()
 
-        # Craft a precise prompt for Llama 3.2
+        # Craft a precise prompt for Llama 3.1
         system_prompt = (
             "Eres un experto en detección de fraude bancario. Tu tarea es analizar los detalles de una transacción "
             "y determinar si es potencialmente fraudulenta. Responde SÓLO con 'FRAUDULENTO' o 'NORMAL'."
@@ -61,6 +57,8 @@ class AnomalyDetector(OllamaBase): # Hereda de OllamaBase
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt},
         ]
+
+        print(f"Mensaje enviado a Ollama Llama 3.1: {messages}")  # Debugging output
         
         options = {
             'temperature': 0.1, # Keep temperature low for more deterministic output
@@ -71,22 +69,24 @@ class AnomalyDetector(OllamaBase): # Hereda de OllamaBase
             # Usamos el método chat_request de la clase base, que ya incluye la lógica de reintento
             response = self.chat_request(messages=messages, options=options)
             
+            print(f"Respuesta de Ollama Llama 3.1: {response}")  # Debugging output
+            
             llm_decision = response['message']['content'].strip().upper()
             
             if "FRAUDULENTO" in llm_decision:
-                self.logger.warning(f"Ollama Llama 3.2 clasifica como: FRAUDULENTO")
+                print(f"Ollama Llama 3.1 clasifica como: FRAUDULENTO")
                 return True
             elif "NORMAL" in llm_decision:
-                self.logger.info(f"Ollama Llama 3.2 clasifica como: NORMAL")
+                print(f"Ollama Llama 3.1 clasifica como: NORMAL")
                 return False
             else:
                 # Fallback if LLM doesn't give a clear answer
-                self.logger.info(f"Ollama Llama 3.2 respuesta ambigua: '{llm_decision}'. Asumiendo NORMAL.")
+                print(f"Ollama Llama 3.1 respuesta ambigua: '{llm_decision}'. Asumiendo NORMAL.")
                 return False
 
         except Exception as e:
-            self.logger.error(f"Error al llamar a Ollama Llama 3.2 (con reintentos): {e}", exc_info=True)
-            self.logger.error("Volviendo a la detección de fraude basada en reglas simples debido a un error de Ollama.")
+            print(f"Error al llamar a Ollama Llama 3.1 (con reintentos): {e}", exc_info=True)
+            print("Volviendo a la detección de fraude basada en reglas simples debido a un error de Ollama.")
             return self._fallback_rule_based_detection(transaction)
     
     def predict_fraud(self, embedding: np.ndarray, transaction: Transaction) -> bool:

@@ -3,11 +3,6 @@
 import numpy as np
 from typing import List, Dict, Any, Tuple
 
-# Asumo que esta es la forma en que tus reglas están cargadas y pre-embedidas
-# Esto es esencial, ya que el RAGRetriever necesita las reglas completas para obtener risk_level y tags.
-# fraud_rules_file debería ser una lista de diccionarios de reglas, cada una con 'id', 'description', 'keywords', 'risk_level', 'mitigation_steps', 'tags' y quizás 'embedding'
-# from .embedding_rule_utils import load_and_embed_rules # Puedes usar esto en tu main para pasar las reglas ya cargadas y embebidas
-
 class RAGRetriever:
     def __init__(self, fraud_rules_data: List[Dict[str, Any]]):
         # fraud_rules_data debe ser la lista de diccionarios de reglas,
@@ -47,19 +42,6 @@ class RAGRetriever:
         activated_risk_levels = []
         activated_tags = []
         context_parts = []
-
-        # Para este ejemplo, voy a simular la activación basada en algunas propiedades de la transacción
-        # y luego buscar reglas que coincidan conceptualmente.
-        # En un sistema real, usarías la similitud de embedding con 'transaction_embedding'
-        # para encontrar las 'top-k' reglas más similares de 'self.fraud_rules'.
-
-        # Lógica de ejemplo (Reemplazar con lógica de similitud de embeddings real)
-        # Si tienes la capacidad de calcular la similitud:
-        # from sklearn.metrics.pairwise import cosine_similarity
-        # transaction_embedding_reshaped = transaction_embedding.reshape(1, -1)
-        # similarities = cosine_similarity(transaction_embedding_reshaped, self.rule_embeddings)[0]
-        # top_rule_indices = similarities.argsort()[-k:][::-1] # Obtener los índices de las k reglas más similares
-        # relevant_rules = [self.fraud_rules[i] for i in top_rule_indices]
 
         # Para un ejemplo funcional sin embeddings complejos aquí, simulemos:
         for rule in self.fraud_rules:
