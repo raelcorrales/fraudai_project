@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from typing import List, Dict, Any
 
@@ -37,12 +38,17 @@ def process_transaction(transaction_data: Dict[str, Any], embedded_rules: List[D
     logger.info("Iniciando procesamiento de transacción...")
 
     transaction_details_str = transaction.to_string_for_embedding()
+    print(f"Detalles de la transacción para embedding: {transaction_details_str}")
     
     # PASO 1: Generar Embedding
+    start_step1_time = time.time()
     logger.info("Generando embedding de la transacción...")
     transaction_embedding = embedding_manager.get_embedding(transaction_details_str)
+    end_step1_time = time.time()
+    logger.info(f"Embedding generado en {end_step1_time - start_step1_time:.2f} segundos. Forma del embedding: {transaction_embedding.shape}")
 
     # PASO 2: Detección de Anomalías
+    start_step2_time = time.time()
     logger.info("Detectando anomalías...")
     is_fraudulent = anomaly_detector.predict_fraud(transaction_embedding, transaction)
 
@@ -52,6 +58,8 @@ def process_transaction(transaction_data: Dict[str, Any], embedded_rules: List[D
         'transaction_details_str_for_llm': transaction_details_str,
         'transaction_embedding_shape': transaction_embedding.shape, 
     })
+    end_step2_time = time.time()
+    logger.info(f"Detección de anomalías completada en {end_step2_time - start_step2_time:.2f} segundos. Resultado: {'Fraudulenta' if is_fraudulent else 'Normal'}")
     
      # Inicializar los campos que se llenarán condicionalmente
     fraud_context = None
@@ -64,11 +72,22 @@ def process_transaction(transaction_data: Dict[str, Any], embedded_rules: List[D
         logger.warning(f"Monto: ${transaction.TransactionAmount}, Comercio: {transaction.MerchantID}, Ubicación: {transaction.Location}")
 
         # PASO 3: Recuperar Contexto RAG, Nivel de Riesgo y Tags (solo si es fraudulento)
+        start_step3_time = time.time()
         logger.info("Recuperando contexto de fraude y detalles de reglas...")
         # El RAGRetriever ahora devuelve 3 valores (asegúrate de que tu RAGRetriever devuelve LOW, MEDIUM, HIGH, CRITICAL si se activa una regla)
         fraud_context, detected_risk_level, detected_rule_tags = rag_retriever.retrieve_context(transaction, transaction_embedding)
         
+        print(f"Contexto de fraude recuperado: {fraud_context}")
+        print(f"Nivel de Riesgo Detectado: {detected_risk_level}")
+        print(f"Tags de Reglas Detectadas: {detected_rule_tags if detected_rule_tags else 'Ninguno'}")
+
+        end_step3_time = time.time()
+        logger.info(f"Contexto de fraude recuperado en {end_step3_time - start_step3_time:.2f} segundos.")
+        logger.info(f"Nivel de Riesgo Detectado: {detected_risk_level}")
+        logger.info(f"Tags de Reglas Detectadas: {detected_rule_tags if detected_rule_tags else 'Ninguno'}")
+        
         # PASO 4: Generar Explicación con LLM (solo si es fraudulento)
+        start_step4_time = time.time()
         logger.info("Generando explicación con LLM...")
         # Pasamos el nivel de riesgo y los tags al explicador, para que los pueda usar en su prompt
         explanation = llm_explainer.generate_explanation(
@@ -77,8 +96,10 @@ def process_transaction(transaction_data: Dict[str, Any], embedded_rules: List[D
             detected_risk_level=detected_risk_level, 
             detected_rule_tags=detected_rule_tags
         )
+        print(f"Explicación generada: {explanation}")
         logger.info(f"Explicación Generada por la IA: {explanation}")
-        
+        end_step4_time = time.time()
+        logger.info(f"Explicación generada en {end_step4_time - start_step4_time:.2f} segundos.")
     else:
         logger.info(f"✅ Transacción Normal: {transaction.TransactionID}. No se detectaron anomalías.")
         logger.info("La transacción no presenta patrones sospechosos según nuestro análisis.")
@@ -91,6 +112,9 @@ def process_transaction(transaction_data: Dict[str, Any], embedded_rules: List[D
         'detected_risk_level': detected_risk_level,
         'detected_rule_tags': detected_rule_tags,
     })
+
+    print("Datos de retorno de la transacción procesada:")
+    print(return_data)
     
     logger.info(f"Procesamiento de transacción {transaction.TransactionID} completado.")
     

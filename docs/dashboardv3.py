@@ -313,7 +313,7 @@ with tab2:
     st.header("🔒 Ciberseguridad y Fraude: Análisis Avanzado")
     st.markdown("""
     Esta sección está diseñada para **analistas de seguridad y equipos de fraude**. Proporciona una visión profunda de las transacciones fraudulentas, incluyendo métricas clave, visualizaciones de anomalías y tendencias de fraude.
-    Aquí podrás explorar patrones de fraude, identificar transacciones sospechosas y comprender el contexto detrás de las alertas de fraude.
+    Aquí podrás explorar patrones de fraude, identificar transacciones sospechosas y comprender el contexto detrás de las alertas de fraude.        
     """)
 
     fraud_df = df_filtered[df_filtered['is_fraudulent'] == True]
@@ -349,7 +349,7 @@ with tab2:
                                                  title='Monto vs. Duración de la Transacción',
                                                  labels={'TransactionDuration': 'Duración (segundos)', 'TransactionAmount': 'Monto ($)'},
                                                  hover_data=['TransactionID', 'AccountID', 'TransactionType', 'fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags'],
-                                                 color_discrete_map={True: 'red', False: 'blue'}, # CORREGIDO
+                                                 color_discrete_map={True: 'red', False: 'blue'},
                                                  size='TransactionAmount', log_y=True)
                 st.plotly_chart(fig_amount_duration, use_container_width=True)
             else:
@@ -360,7 +360,7 @@ with tab2:
                                               title='Monto vs. Intentos de Inicio de Sesión',
                                               labels={'LoginAttempts': 'Intentos de Inicio de Sesión', 'TransactionAmount': 'Monto ($)'},
                                               hover_data=['TransactionID', 'AccountID', 'TransactionType', 'Location', 'fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags'],
-                                              color_discrete_map={True: 'red', False: 'blue'}, # CORREGIDO
+                                              color_discrete_map={True: 'red', False: 'blue'},
                                               size='TransactionAmount', log_y=True)
                 st.plotly_chart(fig_login_amount, use_container_width=True)
             else:
@@ -394,57 +394,17 @@ with tab2:
         st.markdown("---")
         st.subheader("Hotspots de Fraude: Ubicación, IP y Dispositivo")
         col_hotspot1, col_hotspot2 = st.columns(2)
-
-        # INICIO DEL CAMBIO: Reemplazar el gráfico de barras de ubicación por el mapa coroplético
         with col_hotspot1:
             if 'Location' in fraud_df.columns:
-                # Diccionario de mapeo de ciudades a estados de USA
-                # ¡IMPORTANTE!: Este diccionario es básico. Debes expandirlo para cubrir todas las ciudades en tus datos.
-                # Para un sistema robusto, considera una API de geocodificación.
-                city_to_state = {
-                    'New York': 'NY', 'Los Angeles': 'CA', 'Chicago': 'IL', 'Houston': 'TX',
-                    'Phoenix': 'AZ', 'Philadelphia': 'PA', 'San Antonio': 'TX', 'San Diego': 'CA',
-                    'Dallas': 'TX', 'San Jose': 'CA', 'Austin': 'TX', 'Jacksonville': 'FL',
-                    'Fort Worth': 'TX', 'Columbus': 'OH', 'Charlotte': 'NC', 'Memphis': 'TN',
-                    'Denver': 'CO', 'Seattle': 'WA', 'Miami': 'FL', 'Boston': 'MA',
-                    'Detroit': 'MI', 'Washington': 'DC', 'Nashville': 'TN', 'Portland': 'OR', # Asumiendo Portland, OR
-                    'Las Vegas': 'NV', 'Atlanta': 'GA', 'Orlando': 'FL', 'Minneapolis': 'MN',
-                    'Cleveland': 'OH', 'St. Louis': 'MO', 'Tucson': 'AZ', 'Sacramento': 'CA',
-                    'Kansas City': 'MO', 'Virginia Beach': 'VA', 'Mesa': 'AZ', 'Oakland': 'CA',
-                    'Raleigh': 'NC', 'Colorado Springs': 'CO', 'Long Beach': 'CA', 'Omaha': 'NE',
-                    'Honolulu': 'HI', 'Albuquerque': 'NM', 'Fresno': 'CA', 'Louisville': 'KY',
-                    'Milwaukee': 'WI', 'New Orleans': 'LA', 'Tucson': 'AZ'
-                }
-
-                # Crear una nueva columna 'State' mapeando las ciudades
-                fraud_df_copy = fraud_df.copy() # Trabajar en una copia para evitar SettingWithCopyWarning
-                fraud_df_copy['State'] = fraud_df_copy['Location'].map(city_to_state)
-
-                # Contar transacciones fraudulentas por estado
-                state_fraud_counts = fraud_df_copy.dropna(subset=['State'])['State'].value_counts().reset_index()
-                state_fraud_counts.columns = ['State', 'FraudulentTransactions']
-
-                if not state_fraud_counts.empty:
-                    # Crear el mapa coroplético de USA
-                    fig_state_fraud = px.choropleth(state_fraud_counts,
-                                                    locations='State',
-                                                    locationmode='USA-states',
-                                                    color='FraudulentTransactions',
-                                                    scope='usa',
-                                                    color_continuous_scale=px.colors.sequential.Plasma, # Escala de calor
-                                                    title='Frecuencia de Fraude por Estado (USA)')
-                    st.plotly_chart(fig_state_fraud, use_container_width=True)
-
-                    # Advertencia si hay ubicaciones no mapeadas
-                    unmapped_locations_count = fraud_df_copy['State'].isnull().sum()
-                    if unmapped_locations_count > 0:
-                        st.warning(f"Advertencia: {unmapped_locations_count} transacciones fraudulentas tenían ubicaciones que no pudieron ser mapeadas a un estado de USA. Considere ampliar el diccionario 'city_to_state'.")
-                else:
-                    st.info("No hay datos de fraude con ubicaciones mapeables a estados de USA para mostrar en el mapa.")
+                location_fraud_counts = fraud_df['Location'].value_counts().nlargest(10).reset_index()
+                location_fraud_counts.columns = ['Location', 'FraudulentTransactions']
+                fig_fraud_loc = px.bar(location_fraud_counts, x='Location', y='FraudulentTransactions',
+                                       title='Top 10 Ubicaciones con Fraude',
+                                       labels={'Location': 'Ubicación', 'FraudulentTransactions': 'Número de Fraudes'},
+                                       color='Location', color_discrete_sequence=px.colors.qualitative.Dark2)
+                st.plotly_chart(fig_fraud_loc, use_container_width=True)
             else:
-                st.warning("Columna 'Location' no encontrada para generar el mapa de fraude por estado.")
-        # FIN DEL CAMBIO
-
+                st.warning("Columna 'Location' no encontrada para este gráfico.")
         with col_hotspot2:
             if 'DeviceID' in fraud_df.columns:
                 device_fraud_counts = fraud_df['DeviceID'].value_counts().nlargest(10).reset_index()
@@ -478,33 +438,26 @@ with tab2:
         Observa cómo los **puntos rojos (fraudulentos)** tienden a agruparse, indicando patrones detectados por el modelo.
         Pasa el cursor sobre los puntos para ver el **`fraud_context` y la `explanation`**, así como el `detected_risk_level` y `detected_rule_tags`.
         """)
-        if TSNE_AVAILABLE and 'transaction_embedding_shape' in df_filtered.columns and len(df_filtered) >= 50:
+        if TSNE_AVAILABLE and 'transaction_embedding_shape' in df_filtered.columns and len(df_filtered) >= 50: # TSNE necesita al menos 2*perplexity + 1 data points
             try:
-                # Asegurarse de que los embeddings son arrays de NumPy y tienen la forma correcta
-                embeddings_raw = df_filtered['transaction_embedding_shape'].tolist()
-                # Filtrar cualquier sublista que no sea numérica o tenga longitud incorrecta (si la hubiera)
-                embeddings = np.array([e for e in embeddings_raw if isinstance(e, list) and len(e) > 0]) # Asegurar que no hay listas vacías
-
-                if embeddings.shape[0] < 2: # No hay suficientes embeddings válidos
-                    st.warning("No hay suficientes embeddings válidos para generar el gráfico t-SNE.")
-                elif embeddings.shape[1] > 2: # Solo aplicar TSNE si es > 2D
-                    tsne_perplexity = st.slider("Perplexity para t-SNE (ajusta la granularidad de los clusters):", 5, min(50, int(embeddings.shape[0]/2) -1), 30)
+                embeddings = np.array(df_filtered['transaction_embedding_shape'].tolist())
+                if embeddings.shape[1] > 2: # Solo aplicar TSNE si es > 2D
+                    tsne_perplexity = st.slider("Perplexity para t-SNE (ajusta la granularidad de los clusters):", 5, min(50, int(len(embeddings)/2) -1), 30)
                     with st.spinner(f"Calculando t-SNE con perplexity {tsne_perplexity}... Esto puede tomar un momento."):
                         tsne = TSNE(n_components=2, random_state=42, perplexity=tsne_perplexity, learning_rate='auto', init='random', n_iter=500)
                         tsne_results = tsne.fit_transform(embeddings)
-                    df_filtered_with_tsne = df_filtered.copy() # Usar una copia para agregar las columnas t-SNE
-                    df_filtered_with_tsne['tsne_x'] = tsne_results[:,0]
-                    df_filtered_with_tsne['tsne_y'] = tsne_results[:,1]
+                    df_filtered['tsne_x'] = tsne_results[:,0]
+                    df_filtered['tsne_y'] = tsne_results[:,1]
 
-                    chart = alt.Chart(df_filtered_with_tsne).mark_point(opacity=0.7).encode(
+                    chart = alt.Chart(df_filtered).mark_point(opacity=0.7).encode(
                         x=alt.X('tsne_x', axis=alt.Axis(title='Componente t-SNE 1')),
                         y=alt.Y('tsne_y', axis=alt.Axis(title='Componente t-SNE 2')),
-                        color=alt.Color('is_fraudulent:N', title='Estado', scale=alt.Scale(domain=[True, False], range=['red', 'blue'])),
+                        color=alt.Color('is_fraudulent:N', title='Es Fraudulenta', scale=alt.Scale(domain=[True, False], range=['red', 'blue'])),
                         tooltip=[
                             'TransactionID', 'TransactionAmount', 'TransactionDate', 'AccountID',
                             alt.Tooltip('is_fraudulent:N', title='Es Fraudulenta'),
                             alt.Tooltip('fraud_context:N', title='Contexto Fraude'),
-                            alt.Tooltip('explanation:N', title='Explicación LLM'), # Renombrada para claridad
+                            alt.Tooltip('explanation:N', title='Explicación'),
                             alt.Tooltip('detected_risk_level:N', title='Nivel de Riesgo'),
                             alt.Tooltip('detected_rule_tags:N', title='Tags de Regla')
                         ]
@@ -513,20 +466,19 @@ with tab2:
                     ).interactive() # Permite zoom y paneo
                     st.altair_chart(chart, use_container_width=True)
                 else: # Si ya es 2D o 1D, no aplicar t-SNE
-                    st.info(f"Los embeddings tienen {embeddings.shape[1]} dimensiones (<=2). Mostrando directamente.")
-                    df_filtered_with_emb = df_filtered.copy()
-                    df_filtered_with_emb['emb_x'] = embeddings[:,0]
-                    df_filtered_with_emb['emb_y'] = embeddings[:,1] if embeddings.shape[1] > 1 else np.zeros(embeddings.shape[0]) # Handle 1D case
+                    st.info("Los embeddings ya tienen 2 o menos dimensiones. Mostrando directamente.")
+                    df_filtered['emb_x'] = embeddings[:,0]
+                    df_filtered['emb_y'] = embeddings[:,1] if embeddings.shape[1] > 1 else 0 # Handle 1D case
 
-                    chart = alt.Chart(df_filtered_with_emb).mark_point(opacity=0.7).encode(
+                    chart = alt.Chart(df_filtered).mark_point(opacity=0.7).encode(
                         x=alt.X('emb_x', axis=alt.Axis(title='Componente Embedding 1')),
                         y=alt.Y('emb_y', axis=alt.Axis(title='Componente Embedding 2')),
-                        color=alt.Color('is_fraudulent:N', title='Estado', scale=alt.Scale(domain=[True, False], range=['red', 'blue'])),
+                        color=alt.Color('is_fraudulent:N', title='Es Fraudulenta', scale=alt.Scale(domain=[True, False], range=['red', 'blue'])),
                         tooltip=[
                             'TransactionID', 'TransactionAmount', 'TransactionDate', 'AccountID',
                             alt.Tooltip('is_fraudulent:N', title='Es Fraudulenta'),
                             alt.Tooltip('fraud_context:N', title='Contexto Fraude'),
-                            alt.Tooltip('explanation:N', title='Explicación LLM'), # Renombrada para claridad
+                            alt.Tooltip('explanation:N', title='Explicación'),
                             alt.Tooltip('detected_risk_level:N', title='Nivel de Riesgo'),
                             alt.Tooltip('detected_rule_tags:N', title='Tags de Regla')
                         ]
@@ -536,116 +488,109 @@ with tab2:
                     st.altair_chart(chart, use_container_width=True)
 
             except Exception as e:
-                st.error(f"Error al generar el gráfico de embeddings. Asegúrate de que los embeddings en 'transaction_embedding_shape' sean listas de números válidas para todas las filas. Detalles: {e}")
+                st.error(f"Error al generar el gráfico de embeddings con t-SNE. Asegúrate de que los embeddings sean válidos: {e}")
         else:
             st.info("La columna 'transaction_embedding_shape' no fue encontrada, no hay suficientes datos (>50 registros), o scikit-learn no está instalado para generar el gráfico de embeddings.")
 
 
         st.markdown("---")
-        st.subheader("Análisis de Transacciones Fraudulentas Detalladas")
+        st.subheader("Insights Profundos de Fraude (LLM & RAG)")
         st.write("""
-        Aquí puedes **inspeccionar individualmente** las transacciones marcadas como fraudulentas.
-        Haz clic en cualquier fila para ver la **explicación del LLM y el contexto de las reglas** recuperadas por RAG.
+        Esta es la información más valiosa: el **porqué** detrás de la detección de fraude.
+        El **contexto RAG** te muestra los datos relevantes que el modelo usó, y la **explicación del LLM**
+        traduce esa información en un lenguaje comprensible. También se muestran el **nivel de riesgo** y los **tags** asociados a la regla detectada.
         """)
 
-        # Asegurarse de que las columnas críticas existan antes de mostrarlas en la tabla
-        display_columns = [
-            'TransactionID', 'TransactionDate', 'TransactionAmount', 'AccountID',
-            'is_fraudulent', 'detected_risk_level', 'detected_rule_tags',
-            'Location', 'Channel', 'CustomerAge', 'explanation' # Explicación para mostrarla directamente o en detalle
-        ]
-        # Filtrar columnas que no existen en fraud_df
-        available_display_columns = [col for col in display_columns if col in fraud_df.columns]
-
         if not fraud_df.empty:
-            # Ordenar por nivel de riesgo para destacar las críticas
-            risk_level_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "N/A"] # Define un orden
-            fraud_df['detected_risk_level_ordered'] = pd.Categorical(fraud_df['detected_risk_level'].fillna("N/A"),categories=risk_level_order, ordered=True)
-            # Asegurarse de que solo se muestran los campos relevantes en la tabla
-            table_df = fraud_df.sort_values('detected_risk_level_ordered', ascending=True)[available_display_columns]
+            fraud_display_cols = [
+                'TransactionID', 'TransactionDate', 'TransactionAmount',
+                'AccountID', 'Location', 'LoginAttempts', 'Channel',
+                'fraud_context', 'explanation', 'IP Address', 'MerchantID', 'DeviceID',
+                'detected_risk_level', 'detected_rule_tags' # Nuevos campos para mostrar
+            ]
+            # Filtrar columnas para asegurar que solo existen en el DataFrame
+            fraud_display_df = fraud_df[[col for col in fraud_display_cols if col in fraud_df.columns]].copy()
 
-            # Convertir listas de tags a string para mejor visualización en tabla
-            if 'detected_rule_tags' in table_df.columns:
-                table_df['detected_rule_tags'] = table_df['detected_rule_tags'].apply(
-                    lambda x: ", ".join(x) if isinstance(x, list) else (x if x is not None else "N/A")
-                )
+            # Ordenar por fecha para ver los fraudes más recientes primero
+            fraud_display_df = fraud_display_df.sort_values(by='TransactionDate', ascending=False)
 
-            st.dataframe(table_df, use_container_width=True, hide_index=True)
-
-            st.markdown("---")
-            st.subheader("Detalles de Transacción Seleccionada")
-            st.write("Selecciona un `TransactionID` de la tabla de arriba para ver sus explicación completa.")
-
-            selected_transaction_id = st.selectbox(
-                "Selecciona un ID de Transacción Fraudulenta para ver sus detalles:",
-                options=fraud_df['TransactionID'].unique()
+            st.dataframe(
+                fraud_display_df,
+                use_container_width=True,
+                height=300,
+                column_config={
+                    "TransactionID": st.column_config.Column("Transaction ID", help="Identificador único de la transacción"),
+                    "TransactionDate": st.column_config.DatetimeColumn("Fecha", format="YYYY-MM-DD HH:mm"),
+                    "TransactionAmount": st.column_config.NumberColumn("Monto ($)", format="$%.2f"),
+                    "AccountID": st.column_config.Column("Account ID", help="Identificador de la cuenta"),
+                    "Location": st.column_config.Column("Ubicación"),
+                    "LoginAttempts": st.column_config.NumberColumn("Intentos Login"),
+                    "Channel": st.column_config.Column("Canal"),
+                    "IP Address": st.column_config.Column("Dirección IP"),
+                    "MerchantID": st.column_config.Column("Merchant ID"),
+                    "DeviceID": st.column_config.Column("Device ID"),
+                    "fraud_context": st.column_config.Column("Contexto RAG", width="medium"),
+                    "explanation": st.column_config.Column("Explicación LLM", width="large"),
+                    "detected_risk_level": st.column_config.Column("Nivel de Riesgo", width="small"), # Nuevo
+                    "detected_rule_tags": st.column_config.ListColumn("Tags de Regla", width="medium") # Nuevo
+                }
             )
 
-            if selected_transaction_id:
-                selected_transaction = fraud_df[fraud_df['TransactionID'] == selected_transaction_id].iloc[0]
+            selected_fraud_txn_id = st.selectbox(
+                "Selecciona un **TransactionID fraudulento** de la tabla para ver detalles expandidos:",
+                options=[''] + fraud_display_df['TransactionID'].unique().tolist(), # Añadir opción vacía
+                key='select_fraud_txn_llm'
+            )
 
-                st.json(selected_transaction.to_dict()) # Muestra todos los detalles en formato JSON
+            if selected_fraud_txn_id:
+                selected_fraud_row = fraud_df[fraud_df['TransactionID'] == selected_fraud_txn_id].iloc[0]
+                st.markdown(f"### **Detalles Expandidos para TransactionID: `{selected_fraud_row['TransactionID']}`**")
 
-                st.markdown(f"### Explicación de Fraude para {selected_transaction_id}")
-                st.markdown(f"**Nivel de Riesgo Detectado:** {selected_transaction.get('detected_risk_level', 'N/A')}")
-                st.markdown(f"**Tags de Regla Aplicados:** {', '.join(selected_transaction.get('detected_rule_tags', ['N/A'])) if isinstance(selected_transaction.get('detected_rule_tags'), list) else selected_transaction.get('detected_rule_tags', 'N/A')}")
-                st.markdown(f"**Contexto de Fraude (RAG):**")
-                with st.expander("Ver Contexto RAG"):
-                    if selected_transaction.get('fraud_context'):
-                        st.write(selected_transaction['fraud_context'])
+                col_det1, col_det2, col_det3 = st.columns(3) # Añadir columna para riesgo y tags
+                with col_det1:
+                    st.markdown(f"**Fecha:** `{selected_fraud_row['TransactionDate'].strftime('%Y-%m-%d %H:%M:%S')}`")
+                    st.markdown(f"**Monto:** `${selected_fraud_row['TransactionAmount']:,.2f}`")
+                    st.markdown(f"**Cuenta ID:** `{selected_fraud_row['AccountID']}`")
+                    st.markdown(f"**Tipo de Transacción:** `{selected_fraud_row['TransactionType']}`")
+                    st.markdown(f"**Ubicación:** `{selected_fraud_row['Location']}`")
+                with col_det2:
+                    st.markdown(f"**Intentos de Login:** `{selected_fraud_row['LoginAttempts']}`")
+                    st.markdown(f"**Canal:** `{selected_fraud_row['Channel']}`")
+                    st.markdown(f"**Dirección IP:** `{selected_fraud_row['IP Address']}`")
+                    st.markdown(f"**Merchant ID:** `{selected_fraud_row['MerchantID']}`")
+                    st.markdown(f"**Device ID:** `{selected_fraud_row['DeviceID']}`")
+                with col_det3: # Detalles adicionales de la regla
+                    if pd.notna(selected_fraud_row['detected_risk_level']):
+                        st.markdown(f"**Nivel de Riesgo Detectado:** `{selected_fraud_row['detected_risk_level']}`")
                     else:
-                        st.info("No hay contexto de fraude disponible para esta transacción.")
-
-                st.markdown(f"**Explicación del LLM:**")
-                with st.expander("Ver Explicación Completa"):
-                    if selected_transaction.get('explanation'):
-                        st.write(selected_transaction['explanation'])
+                        st.markdown("**Nivel de Riesgo Detectado:** `N/A`")
+                    if selected_fraud_row['detected_rule_tags'] is not None and isinstance(selected_fraud_row['detected_rule_tags'], list):
+                        st.markdown(f"**Tags de Regla:** `{', '.join(selected_fraud_row['detected_rule_tags'])}`")
                     else:
-                        st.info("No hay explicación del LLM disponible para esta transacción.")
-            else:
-                st.info("Por favor, selecciona un ID de Transacción.")
+                        st.markdown("**Tags de Regla:** `N/A`")
 
-# --- Sección de Insights de Cliente (sin cambios mayores aquí, solo si aplica) ---
-with tab3:
-    st.header("👥 Insights de Cliente")
-    st.markdown("""
-    Esta sección ofrece un análisis del comportamiento de los clientes, ayudando a identificar patrones de gasto y características demográficas.
-    """)
 
-    if df_filtered.empty:
-        st.info("No hay datos para analizar los insights de cliente con los filtros actuales.")
-    else:
-        st.subheader("Distribución de Clientes por Edad y Ocupación")
-        col_customer1, col_customer2 = st.columns(2)
-        with col_customer1:
-            if 'CustomerAge' in df_filtered.columns:
-                fig_age = px.histogram(df_filtered, x='CustomerAge', title='Distribución de Edad de Clientes',
-                                       labels={'CustomerAge': 'Edad del Cliente'}, color_discrete_sequence=['purple'])
-                st.plotly_chart(fig_age, use_container_width=True)
-            else:
-                st.warning("Columna 'CustomerAge' no encontrada.")
-        with col_customer2:
-            if 'CustomerOccupation' in df_filtered.columns:
-                occupation_counts = df_filtered['CustomerOccupation'].value_counts().reset_index()
-                occupation_counts.columns = ['Occupation', 'Count']
-                fig_occupation = px.bar(occupation_counts, x='Count', y='Occupation', orientation='h',
-                                        title='Transacciones por Ocupación del Cliente',
-                                        labels={'Count': 'Número de Transacciones', 'Occupation': 'Ocupación'},
-                                        color='Occupation', color_discrete_sequence=px.colors.qualitative.Prism)
-                st.plotly_chart(fig_occupation, use_container_width=True)
-            else:
-                st.warning("Columna 'CustomerOccupation' no encontrada.")
+                st.markdown("#### **Contexto de Fraude (RAG)**")
+                if pd.notna(selected_fraud_row['fraud_context']) and selected_fraud_row['fraud_context']:
+                    st.info(f"👉 {selected_fraud_row['fraud_context']}")
+                else:
+                    st.warning("No hay contexto RAG disponible para esta transacción.")
 
-        st.subheader("Monto de Transacción por Ocupación")
-        if 'CustomerOccupation' in df_filtered.columns and 'TransactionAmount' in df_filtered.columns:
-            avg_amount_by_occupation = df_filtered.groupby('CustomerOccupation')['TransactionAmount'].mean().reset_index()
-            fig_avg_occupation = px.bar(avg_amount_by_occupation, x='CustomerOccupation', y='TransactionAmount',
-                                        title='Monto Promedio de Transacción por Ocupación',
-                                        labels={'CustomerOccupation': 'Ocupación', 'TransactionAmount': 'Monto Promedio ($)'},
-                                        color='CustomerOccupation', color_discrete_sequence=px.colors.qualitative.Pastel)
-            st.plotly_chart(fig_avg_occupation, use_container_width=True)
+                st.markdown("#### **Explicación (LLM)**")
+                if pd.notna(selected_fraud_row['explanation']) and selected_fraud_row['explanation']:
+                    st.success(f"💡 {selected_fraud_row['explanation']}")
+                else:
+                    st.warning("No hay explicación del LLM disponible para esta transacción.")
+
+                st.markdown("---")
+                st.write("Ver todos los datos brutos de la transacción en formato JSON:")
+                st.json(fraud_df[fraud_df['TransactionID'] == selected_fraud_txn_id].iloc[0].to_dict())
+
         else:
-            st.warning("Columnas 'CustomerOccupation' o 'TransactionAmount' no encontradas.")
+            st.info("No hay transacciones fraudulentas para mostrar los detalles del LLM/RAG con los filtros actuales.")
+
+
+with tab3:
     st.header("👥 Insights del Cliente: Conoce a tus Usuarios")
     st.markdown("""
     Esta sección está diseñada para **analistas de negocio y marketing**. Proporciona una visión profunda del comportamiento del cliente, incluyendo la distribución por edad, ocupación y patrones de gasto.
