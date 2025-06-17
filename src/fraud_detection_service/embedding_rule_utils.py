@@ -89,5 +89,5 @@ def load_and_embed_rules(model_name: str, rules_file_path: str) -> List[Dict[str
             failed_embeddings_count += 1
             continue
             
-    prints(f"Se generaron embeddings para {len(embedded_rules)} de {len(rules)} reglas. Fallaron: {failed_embeddings_count}.")
+    print(f"Se generaron embeddings para {len(embedded_rules)} de {len(rules)} reglas. Fallaron: {failed_embeddings_count}.")
     return embedded_rules
