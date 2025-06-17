@@ -1,7 +1,7 @@
 import ollama
 import random
 import time
-from typing import List, Dict, Any, Callable, Union
+from typing import Dict, Any, Callable, Union
 
 class OllamaBase:
     def __init__(self, model_name: str, max_retries: int = 3, base_delay: float = 1.0):
@@ -56,13 +56,3 @@ class OllamaBase:
             return ollama.embeddings(model=self.model_name, prompt=prompt)
         
         return self._resilience_wrapper(_call_embeddings)
-    
-    def chat_request(self, messages: List[Dict[str, str]], options: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Realiza una solicitud de chat a Ollama con resiliencia.
-        Este método es genérico para llamadas a ollama.chat.
-        """
-        def _call_chat():
-            return ollama.chat(model=self.model_name, messages=messages, options=options)
-        
-        return self._resilience_wrapper(_call_chat)

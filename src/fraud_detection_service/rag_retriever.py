@@ -1,91 +1,81 @@
-# src/fraud_detection_service/rag_retriever.py (modificado)
+from typing import List, Dict, Any
+from .ollama_base import OllamaBase
 
-import numpy as np
-from typing import List, Dict, Any, Tuple
+RISK_LEVEL_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 0}
 
-class RAGRetriever:
-    def __init__(self, fraud_rules_data: List[Dict[str, Any]]):
-        # fraud_rules_data debe ser la lista de diccionarios de reglas,
-        # cada una con sus campos, incluyendo 'risk_level' y 'tags'.
-        self.fraud_rules = fraud_rules_data
-        # Si usas embeddings para la recuperación, necesitas que las reglas también estén embebidas aquí
-        # Por ejemplo, self.rule_embeddings = np.array([rule['embedding'] for rule in fraud_rules_data])
+class RAGRetriever(OllamaBase):
+    def __init__(self, fraud_rules: List[Dict[str, Any]], model_name: str = "llama3.1", max_retries: int = 3, base_delay: float = 1.0):
+        super().__init__(model_name, max_retries, base_delay)
+        self.fraud_rules = fraud_rules
 
-    def retrieve_context(self, transaction: Any, transaction_embedding: np.ndarray) -> Tuple[str, str, List[str]]:
-        """
-        Recupera el contexto relevante de las reglas de fraude para una transacción.
-        También determina el nivel de riesgo detectado y los tags de las reglas activadas.
+    def retrieve_context(self, transaction) -> Dict[str, Any]:
+        tx = transaction
+        tx_str = tx.to_string_for_embedding().lower()
+        matched_rules = []
 
-        Args:
-            transaction: Objeto de transacción (asumo que tiene atributos como MerchantID, Location, etc.)
-            transaction_embedding: El embedding de la transacción.
-
-        Returns:
-            Una tupla que contiene:
-            - fraud_context (str): El contexto RAG para el LLM.
-            - detected_risk_level (str): El nivel de riesgo más alto de las reglas activadas.
-            - detected_rule_tags (List[str]): Una lista única de tags de las reglas activadas.
-        """
-        relevant_rules = []
-        
-        # --- Lógica de Recuperación de Reglas ---
-        # Esta es la parte más importante donde decides qué reglas se "activan".
-        # Puedes usar:
-        # 1. Similitud de Embedding (más avanzado, recomendado)
-        # 2. Coincidencia de palabras clave (más simple)
-        # 3. Lógica condicional (si la transacción cumple ciertos criterios de regla)
-
-        # EJEMPLO SIMPLIFICADO: Coincidencia por palabra clave y/o heurísticas básicas
-        # En una implementación real con embeddings, harías una búsqueda de similitud.
-        # Aquí, vamos a simular la "activación" de reglas para demostrar la extracción de riesgo y tags.
-
-        activated_risk_levels = []
-        activated_tags = []
-        context_parts = []
-
-        # Para un ejemplo funcional sin embeddings complejos aquí, simulemos:
+        # 1. Matching heurístico simple por keywords y campos:
         for rule in self.fraud_rules:
-            # Lógica simple para simular si una regla "se activa"
-            # En tu implementación, esto se basaría en la similitud semántica o reglas explícitas.
-            is_rule_activated = False
-            
-            # Ejemplo de activación heurística (reemplaza esto con tu lógica de detección real)
-            if "monto alto" in rule["keywords"] and transaction.TransactionAmount > 5000:
-                is_rule_activated = True
-            if "ubicación inusual" in rule["keywords"] and transaction.Location not in ["New York", "Los Angeles"]: # Simplificado
-                 is_rule_activated = True
-            if "intentos fallidos" in rule["keywords"] and transaction.LoginAttempts > 3:
-                is_rule_activated = True
-            # ... añade más heurísticas o (preferiblemente) usa la similitud de embeddings real
-            
-            # Si la regla se activa (por heurística o similitud de embedding)
-            if is_rule_activated:
-                relevant_rules.append(rule)
+            # Por keywords
+            if any(kw.lower() in tx_str for kw in rule.get("keywords", [])):
+                matched_rules.append(rule)
+            # Ejemplo: por campo (puedes añadir más reglas aquí)
+            if rule["id"] == "RULE_001_HIGH_VALUE_UNUSUAL_CATEGORY":
+                if getattr(tx, "TransactionAmount", 0) > 500 and getattr(tx, "CustomerOccupation", "").lower() == "student":
+                    matched_rules.append(rule)
+            if rule["id"] == "RULE_006_LARGE_PERCENTAGE_OF_ACCOUNT_BALANCE":
+                if getattr(tx, "AccountBalance", 1) > 0 and getattr(tx, "TransactionAmount", 0) / getattr(tx, "AccountBalance", 1) > 0.8:
+                    matched_rules.append(rule)
+            # Puedes añadir más matching heurístico por regla si lo deseas...
 
-        # Si no se recuperan reglas, proporcionar un contexto por defecto
-        if not relevant_rules:
-            detected_risk_level = "LOW" # O un default apropiado
-            detected_rule_tags = []
-            context_parts.append("No se encontraron reglas de fraude directamente aplicables con alta confianza.")
-            fraud_context = ". ".join(context_parts)
-            return fraud_context, detected_risk_level, detected_rule_tags
+        # Eliminar duplicados
+        matched_rules = list({r["id"]: r for r in matched_rules}.values())
 
-        # Procesar las reglas relevantes para construir el contexto y extraer riesgo/tags
-        for i, rule in enumerate(relevant_rules):
-            context_parts.append(f"Regla {i+1} (ID: {rule['id']}): {rule['description']}. Keywords: {', '.join(rule['keywords'])}. Pasos de mitigación: {'; '.join(rule['mitigation_steps'])}.")
-            activated_risk_levels.append(rule['risk_level'])
-            activated_tags.extend(rule['tags'])
+        if matched_rules:
+            max_rule = max(matched_rules, key=lambda r: RISK_LEVEL_ORDER.get(r.get("risk_level", "LOW"), 1))
+            risk_level = max_rule["risk_level"]
+            tags = list({tag for rule in matched_rules for tag in rule.get("tags", [])})
+            rule_descriptions = [rule["description"] for rule in matched_rules]
+            rule_ids = [rule["id"] for rule in matched_rules]
+            return {
+                "matched_rule_ids": rule_ids,
+                "risk_level": risk_level,
+                "tags": tags,
+                "rule_descriptions": rule_descriptions,
+                "explanation_base": "Se detectaron posibles patrones de fraude según las reglas coincidentes."
+            }
 
-        # Determinar el detected_risk_level más alto
-        risk_order = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
-        detected_risk_level = "LOW"
-        if activated_risk_levels:
-            highest_risk_value = max([risk_order[level] for level in activated_risk_levels])
-            detected_risk_level = [level for level, value in risk_order.items() if value == highest_risk_value][0]
+        # 2. Si no hay match, consulta a Ollama:
+        rules_summary = "\n".join([f"{r['id']}: {r['description']} (Nivel: {r['risk_level']}, Tags: {', '.join(r['tags'])})" for r in self.fraud_rules])
+        prompt = (
+            "Eres un sistema experto en fraude bancario. Dada la siguiente transacción y el resumen de reglas de fraude del banco, "
+            "analiza la transacción y sugiere:\n"
+            "1. El risk_level más relevante (CRITICAL, HIGH, MEDIUM, LOW, NONE).\n"
+            "2. Los tags más relevantes de la lista de reglas (elige uno o varios si aplica).\n"
+            "3. Una breve justificación.\n"
+            "Devuelve la respuesta en formato JSON así:\n"
+            "{ \"risk_level\":..., \"tags\": [...], \"justification\": ... }\n\n"
+            f"Resumen de reglas:\n{rules_summary}\n\n"
+            f"Transacción:\n{tx.to_string_for_embedding()}\n"
+        )
 
-        # Obtener tags únicos
-        detected_rule_tags = list(set(activated_tags))
-        
-        fraud_context = " ".join(context_parts)
+        options = {"temperature": 0.1, "num_predict": 120}
+        response = self.generate_request(prompt, options)
+        import json
+        content = response["response"] if "response" in response else response.get("message", {}).get("content", "")
+        try:
+            llm_json = json.loads(content)
+            risk_level = llm_json.get("risk_level", "NONE")
+            tags = llm_json.get("tags", [])
+            justification = llm_json.get("justification", "")
+        except Exception:
+            risk_level = "NONE"
+            tags = []
+            justification = "No se pudo obtener información relevante del modelo."
 
-        return fraud_context, detected_risk_level, detected_rule_tags
+        return {
+            "matched_rule_ids": [],
+            "risk_level": risk_level,
+            "tags": tags,
+            "rule_descriptions": [],
+            "explanation_base": justification
+        }
