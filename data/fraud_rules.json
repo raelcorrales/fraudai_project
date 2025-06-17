@@ -8,7 +8,8 @@
       "Bloquear transacción y contactar al cliente inmediatamente.",
       "Requerir verificación multifactor (MFA).",
       "Alertar a equipo de fraude para revisión manual."
-    ]
+    ],
+    "tags": ["financial", "behavioral"]
   },
   {
     "id": "RULE_002_GEOGRAPHIC_LOCATION_MISMATCH",
@@ -19,7 +20,8 @@
       "Solicitar confirmación de viaje.",
       "Bloquear la transacción hasta la verificación.",
       "Monitorear transacciones subsiguientes."
-    ]
+    ],
+    "tags": ["geolocation", "behavioral", "account_takeover"]
   },
   {
     "id": "RULE_003_MULTIPLE_FAILED_LOGIN_ATTEMPTS",
@@ -30,7 +32,8 @@
       "Bloquear cuenta temporalmente.",
       "Requerir restablecimiento de contraseña.",
       "Contactar al cliente a través de un canal seguro."
-    ]
+    ],
+    "tags": ["authentication", "account_takeover"]
   },
   {
     "id": "RULE_004_SHORT_TRANSACTION_DURATION_AFTER_LOGIN_SPIKE",
@@ -41,7 +44,8 @@
       "Bloquear transacción.",
       "Realizar investigación forense sobre la sesión.",
       "Notificar al cliente."
-    ]
+    ],
+    "tags": ["behavioral", "technical", "account_takeover"]
   },
   {
     "id": "RULE_005_UNUSUAL_DEVICE_OR_CHANNEL",
@@ -52,7 +56,8 @@
       "Enviar alerta de verificación a dispositivo principal.",
       "Requerir autenticación adicional.",
       "Marcar dispositivo para monitoreo."
-    ]
+    ],
+    "tags": ["device", "channel", "behavioral"]
   },
   {
     "id": "RULE_006_LARGE_PERCENTAGE_OF_ACCOUNT_BALANCE",
@@ -63,7 +68,8 @@
       "Poner la transacción en espera para revisión manual.",
       "Contactar al cliente para verificar la intención.",
       "Limitar monto de transacción diaria/mensual."
-    ]
+    ],
+    "tags": ["financial", "behavioral"]
   },
   {
     "id": "RULE_007_INTERNATIONAL_TRANSACTION_NO_TRAVEL_NOTIFICATION",
@@ -74,7 +80,8 @@
       "Bloquear transacción si no hay notificación.",
       "Contactar al cliente para verificar el viaje.",
       "Requerir verificación de identidad."
-    ]
+    ],
+    "tags": ["geolocation", "financial"]
   },
   {
     "id": "RULE_008_SUDDEN_CHANGE_IN_SPENDING_HABITS",
@@ -85,16 +92,18 @@
       "Enviar alerta de confirmación al cliente.",
       "Revisar el historial de transacciones para identificar la anomalía.",
       "Monitorear transacciones futuras de cerca."
-    ]
+    ],
+    "tags": ["behavioral", "financial"]
   },
   {
     "id": "RULE_009_TRANSACTION_AT_UNUSUAL_HOURS",
     "description": "La transacción ocurre en horas que son atípicas para la actividad del cliente (ej. madrugada para alguien que no trabaja en turnos nocturnos) o para el comercio.",
     "keywords": ["horas inusuales", "madrugada", "fuera de horario", "comportamiento nocturno"],
-    "risk_level": "LOW_MEDIUM",
+    "risk_level": "LOW",
     "mitigation_steps": [
       "Marcar para revisión posterior si se combina con otros indicadores.",
       "Ajustar umbrales de alerta para este patrón."
-    ]
+    ],
+    "tags": ["behavioral", "timing"]
   }
 ]

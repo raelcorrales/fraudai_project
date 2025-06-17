@@ -2,9 +2,11 @@ import numpy as np
 import ollama
 import logging 
 
-from src.transaction import Transaction
+# Asegúrate de ajustar la importación de OllamaBase según la estructura de tu proyecto
+from .ollama_base import OllamaBase 
+from src.transaction import Transaction # Asumo que Transaction está en src/transaction.py
 
-class AnomalyDetector:
+class AnomalyDetector(OllamaBase): # Hereda de OllamaBase
     """
     Detector de anomalías utilizando Ollama Llama 3.2 para la detección de fraude.
     Este componente utiliza un modelo LLM para "razonar" sobre
@@ -16,8 +18,9 @@ class AnomalyDetector:
     En un sistema real, se podría integrar con un servicio de embeddings para generar
     embeddings de transacciones y utilizar un modelo LLM especializado en detección de fraude.
     """
-    def __init__(self, model_name: str = "llama3.2"):
-        self.model_name = model_name
+    def __init__(self, model_name: str = "llama3.1", max_retries: int = 3, base_delay: float = 1.0):
+        # Llama al constructor de la clase base
+        super().__init__(model_name=model_name, max_retries=max_retries, base_delay=base_delay)
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         # Optionally, you could load fraud rules here if you want the LLM to reference them directly
@@ -30,8 +33,8 @@ class AnomalyDetector:
         
         Args:
             embedding (np.ndarray): El embedding generado de la transacción (puede ser ignorado
-                                    directamente por el LLM en este MVP, pero se mantiene para
-                                    compatibilidad con la firma).
+                                     directamente por el LLM en este MVP, pero se mantiene para
+                                     compatibilidad con la firma).
             transaction (Transaction): El objeto Transaction con todos los detalles.
         
         Returns:
@@ -54,18 +57,19 @@ class AnomalyDetector:
             f"Responde SÓLO con 'FRAUDULENTO' o 'NORMAL'."
         )
 
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt},
+        ]
+        
+        options = {
+            'temperature': 0.1, # Keep temperature low for more deterministic output
+            'num_predict': 20 # Limit output length to encourage concise answer
+        }
+
         try:
-            response = ollama.chat(
-                model=self.model_name,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt},
-                ],
-                options={
-                    'temperature': 0.1, # Keep temperature low for more deterministic output
-                    'num_predict': 20 # Limit output length to encourage concise answer
-                }
-            )
+            # Usamos el método chat_request de la clase base, que ya incluye la lógica de reintento
+            response = self.chat_request(messages=messages, options=options)
             
             llm_decision = response['message']['content'].strip().upper()
             
@@ -81,12 +85,14 @@ class AnomalyDetector:
                 return False
 
         except Exception as e:
-            self.logger.errot(f"Error al llamar a Ollama Llama 3.2:", exc_info=True)
+            self.logger.error(f"Error al llamar a Ollama Llama 3.2 (con reintentos): {e}", exc_info=True)
             self.logger.error("Volviendo a la detección de fraude basada en reglas simples debido a un error de Ollama.")
             return self._fallback_rule_based_detection(transaction)
     
     def predict_fraud(self, embedding: np.ndarray, transaction: Transaction) -> bool:
-        return self._fallback_rule_based_detection(transaction)
+        # En tu código original, `predict_fraud` solo llamaba al fallback.
+        # Asumo que ahora quieres que intente el LLM primero.
+        return self._predict_fraud(embedding, transaction)
 
     def _fallback_rule_based_detection(self, transaction: Transaction) -> bool:
         """

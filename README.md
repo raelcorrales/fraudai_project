@@ -1,162 +1,221 @@
-# FraudAI: Sistema de Detección y Explicación de Fraude con LLMs
+Okay, ¡aquí tienes el **README.md** completamente actualizado y listo para tu proyecto\! Incorpora todos los cambios que discutimos, destacando la integración con Ollama y las mejoras en la explicación del flujo de trabajo.
 
-## 🚀 Visión General del Proyecto
+-----
 
-`FraudAI` es un sistema prototipo de detección y explicación de fraude en transacciones financieras, diseñado como un Producto Mínimo Viable (MVP). Combina técnicas de procesamiento de lenguaje natural (NLP) con Large Language Models (LLMs) para identificar transacciones sospechosas y proporcionar explicaciones claras y contextualizadas.
+# 🛡️ Fraud Detection RAG + LLM
 
-A diferencia de los sistemas tradicionales basados únicamente en reglas o modelos de Machine Learning convencionales, `FraudAI` integra un LLM (Llama 3.2 de Ollama) directamente en el proceso de detección de anomalías, lo que permite un "razonamiento" más flexible y una explicación más humana del porqué una transacción podría ser fraudulenta.
+Este proyecto implementa un sistema inteligente de **detección de fraudes financieros** combinando lo mejor del aprendizaje automático, recuperación de conocimiento (RAG) y generación de lenguaje natural (LLM).
 
-## ✨ Características Principales
+> Desarrollado por **Rael Corrales** · Python Engineer & Data Specialist
 
-* **Detección de Anomalías impulsada por LLM:** El módulo `AnomalyDetector` utiliza **Llama 3.2** para analizar los detalles de cada transacción y determinar si presenta patrones fraudulentos.
-* **Recuperación Aumentada de Generación (RAG):** El `RAGRetriever` accede a una base de conocimiento de reglas de fraude (`fraud_rules.json`) para proporcionar contexto relevante.
-* **Explicaciones de Fraude Generadas por LLM:** El `LLMExplainer` utiliza **Llama 3.2** para generar explicaciones claras y concisas del motivo del fraude, basándose en el contexto recuperado por RAG.
-* **Gestión de Embeddings:** El `EmbeddingManager` (simulado en el MVP) prepara los datos de transacción para su procesamiento por los LLMs.
-* **Interfaz de Usuario Interactiva con Streamlit:** Un dashboard intuitivo que permite visualizar el procesamiento de transacciones, identificar fraudes detectados y explorar las explicaciones generadas por la IA.
-* **Escalabilidad para MVP:** Diseñado para manejar un volumen moderado de transacciones para demostraciones, con una estructura modular que facilita futuras expansiones.
+-----
 
-## ⚙️ Arquitectura del Sistema (MVP)
+## 🚀 Características Principales
 
-El sistema sigue un flujo de procesamiento modular:
+  * 🧠 **Embeddings Semánticos**: Representación vectorial avanzada para transacciones y reglas de fraude, utilizando **Ollama**.
+  * ⚠️ **Detección de Anomalías con LLM**: Identifica transacciones sospechosas mediante el razonamiento de un Modelo de Lenguaje Grande.
+  * 📚 **RAG Semántico**: Recupera reglas de fraude relevantes usando la similitud entre embeddings para un contexto preciso.
+  * 💬 **Explicaciones Generadas por IA**: Ofrece razones claras y detalladas en lenguaje natural sobre por qué una transacción es considerada fraudulenta.
+  * 🔌 **Diseño Modular y Extensible**: Componentes bien definidos para facilitar la adaptación y el crecimiento del sistema.
 
-1.  **Datos de Transacción:** Las transacciones se cargan desde un conjunto de datos (ej. JSON Lines).
-2.  **`Transaction` Model:** Los datos brutos de la transacción se transforman en un objeto estructurado.
-3.  **`EmbeddingManager`:** (Simulado) Convierte los detalles de la transacción en embeddings (representaciones vectoriales), aunque para la detección LLM, el texto es la entrada principal.
-4.  **`AnomalyDetector`:**
-    * Recibe el objeto `Transaction`.
-    * Envía los detalles de la transacción a **Ollama Llama 3.2** con un prompt específico para clasificarla como `FRAUDULENTO` o `NORMAL`. (Temperatura: **0.1**).
-    * Incluye un mecanismo de fallback basado en reglas si la llamada al LLM falla.
-5.  **`RAGRetriever`:**
-    * Si el `AnomalyDetector` marca una transacción como fraudulenta.
-    * Busca en un archivo `fraud_rules.json` (que contiene reglas de fraude estructuradas con descripciones y palabras clave) para encontrar el contexto más relevante para la transacción actual.
-6.  **`LLMExplainer`:**
-    * Si se detecta fraude.
-    * Utiliza **Ollama Llama 3.2** (Temperatura: **0.5**) junto con los detalles de la transacción y el contexto recuperado por RAG para generar una explicación humana sobre por qué se considera fraudulenta la transacción.
-7.  **Salida de Resultados:** Los resultados del procesamiento (incluyendo el veredicto de fraude, el contexto RAG y la explicación del LLM) se guardan en un archivo `.jsonl`.
-8.  **Streamlit Dashboard:** Carga y visualiza los resultados del `.jsonl`, proporcionando métricas clave, una tabla de transacciones fraudulentas y un desglose detallado por transacción.
+-----
 
-## 🛠️ Requisitos del Sistema
+## 📁 Estructura del Proyecto
 
-* Python 3.9+
-* **Ollama:** Necesitas tener Ollama instalado y ejecutándose en tu máquina.
-* **Modelo Llama 3.2:** El modelo `llama3.2` debe estar disponible en Ollama (`ollama pull llama3.2`).
-* **GPU con al menos 6GB de VRAM:** Recomendado para un rendimiento óptimo con el modelo Llama 3.2 (8B parámetros).
-* **Dependencias de Python:** Ver `requirements.txt` (se generará si aún no existe).
+```
+src/
+├── main_app.py                 # Punto de entrada principal (demostración/ejecución)
+├── process_function.py         # Orquestador de la lógica central de detección
+├── transaction.py              # Modelo de datos para las transacciones
+└── fraud_detection_service/
+    ├── embedding_manager.py    # Gestión de la generación de embeddings con Ollama
+    ├── anomaly_detector.py     # Lógica de detección de fraude impulsada por LLM
+    ├── rag_retriever.py        # Recuperación semántica de reglas de fraude
+    ├── llm_explainer.py        # Generación de explicaciones en lenguaje natural
+    ├── ollama_base.py          # Clase base para la interacción con la API de Ollama
+    └── embedding_rule_utils.py # Carga y embebido de reglas desde JSON
 
-## Dataset (Bank Transaction Dataset for Fraud Detection)
+resources/
+└── fraud_rules.json            # Archivo JSON con las reglas estructuradas de fraude
+```
 
->Detailed Analysis of Transactional Behavior and Anomaly Detection
+-----
 
-**URL**: [https://www.kaggle.com/datasets/valakhorasani/bank-transaction-dataset-for-fraud-detection?resource=download](https://www.kaggle.com/datasets/valakhorasani/bank-transaction-dataset-for-fraud-detection?resource=download)
+## 🧠 Tecnologías Utilizadas
 
-### Acerca del conjunto de datos
-Este conjunto de datos ofrece una visión detallada del comportamiento transaccional y los patrones de actividad financiera, ideal para explorar la detección de fraudes y la identificación de anomalías. Contiene **2512** muestras de datos de transacciones, que abarcan diversos atributos de las transacciones, datos demográficos de los clientes y patrones de uso. Cada entrada ofrece información completa sobre el comportamiento de las transacciones, lo que permite el análisis para aplicaciones de seguridad financiera y detección de fraudes.
+  * **Python 3.9+**
+  * **[NumPy](https://numpy.org/)**: Para operaciones numéricas eficientes con embeddings.
+  * **[scikit-learn](https://scikit-learn.org/)**: Principalmente para el cálculo de similitud coseno.
+  * **[Ollama](https://ollama.com/)**: Plataforma fundamental para la ejecución local de Modelos de Lenguaje Grandes (LLMs) y modelos de embeddings.
 
-### Características principales:
-- **TransactionID**: Identificador alfanumérico único para cada transacción.
-- **AccountID**: Identificador único para cada cuenta, con múltiples transacciones por cuenta.
-- **TransactionAmount**: Valor monetario de cada transacción, desde pequeños gastos cotidianos hasta compras más importantes.
-- **TransactionDate**: Marca de tiempo de cada transacción, que captura la fecha y la hora.
-- **TransactionType**: Campo categórico que indica transacciones de "Crédito" o "Débito".
-- **Location**: Ubicación geográfica de la transacción, representada por nombres de ciudades de EE. UU.
-- **DeviceID**: Identificador alfanumérico de los dispositivos utilizados para realizar la transacción.
-- **IP Address**: Dirección IPv4 asociada a la transacción, con cambios ocasionales para algunas cuentas.
-- **MerchantID**: Identificador único para comerciantes, que muestra los comerciantes preferidos y atípicos para cada cuenta.
-- **AccountBalance**: Saldo de la cuenta después de la transacción, con correlaciones lógicas según el tipo y el importe de la transacción.
-- **PreviousTransactionDate**: Marca de tiempo de la última transacción de la cuenta, que ayuda a calcular la frecuencia de las transacciones.
-- **Channel**: Canal a través del cual se realizó la transacción (p. ej., en línea, cajero automático, sucursal).
-- **CustomerAge**: Edad del titular de la cuenta, con agrupaciones lógicas según su ocupación.
-- **CustomerOccupation**: Ocupación del titular de la cuenta (p. ej., médico, ingeniero, estudiante, jubilado), que refleja los patrones de ingresos.
-- **TransactionDuration**: Duración de la transacción en segundos, que varía según el tipo de transacción.
-- **LoginAttempts**: Número de intentos de inicio de sesión antes de la transacción; los valores más altos indican posibles anomalías.
+-----
 
-## 🚀 Configuración y Ejecución
+## ⚙️ Configuración del Entorno
 
-### Crear Entorno Virtual e Instalar Dependencias
+Asegúrate de tener **Ollama instalado y corriendo** en tu sistema. Luego, descarga los modelos necesarios.
 
-Es altamente recomendable usar un entorno virtual para gestionar las dependencias del proyecto.
+1.  **Instala Ollama**: Sigue las instrucciones en [ollama.com](https://ollama.com/).
+
+2.  **Descarga los modelos**:
+
+      * Para embeddings (CRÍTICO: usa un modelo diseñado para embeddings):
+        ```bash
+        ollama pull nomic-embed-text
+        ```
+      * Para LLMs (detección y explicación):
+        ```bash
+        ollama pull llama3.1
+        ```
+
+3.  **Variables de Entorno**: Crea un archivo `.env` en la raíz de tu proyecto o define las siguientes variables de entorno:
+
+    | Variable               | Descripción                                                                          | Valor por Defecto   |
+    | :--------------------- | :----------------------------------------------------------------------------------- | :------------------ |
+    | `llm_model_name`       | Nombre del modelo LLM de Ollama para la **generación de explicaciones**.             | `llama3.1`          |
+    | `llm_model_temperature`| Temperatura de creatividad del LLM para explicaciones (0.0 a 1.0).                  | `0.5`               |
+    | `chat_model_name`      | Nombre del modelo LLM de Ollama para la **detección inicial de anomalías**.         | `llama3.1`          |
+    | `embedding_model_name` | Nombre del modelo de **embeddings** de Ollama (debe ser un modelo de embeddings).  | `nomic-embed-text`  |
+
+-----
+
+## ▶️ Ejecución del Proyecto
+
+1.  **Clona el repositorio**:
+
+    ```bash
+    git clone https://github.com/raelcorrales/fraud-detection-rag-llm.git
+    cd fraud-detection-rag-llm
+    ```
+
+2.  **Instala las dependencias de Python**:
+
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Verifica que Ollama esté corriendo**:
+
+    ```bash
+    ollama list
+    ```
+
+    (Deberías ver los modelos `nomic-embed-text` y `llama3.1` listados).
+
+4.  **Ejecuta el script principal**:
+
+    ```bash
+    python src/main_app.py
+    ```
+
+### Integración en tu Aplicación
+
+Puedes importar la función `process_transaction` y usarla en tu propia aplicación. **Es crucial inicializar los componentes de Ollama una sola vez** para optimizar el rendimiento y evitar inicializaciones redundantes.
+
+```python
+# Ejemplo de uso en tu script principal o controlador de API
+import os
+from src.process_function import process_transaction
+from src.fraud_detection_service.embedding_manager import EmbeddingManager
+from src.fraud_detection_service.anomaly_detector import AnomalyDetector
+from src.fraud_detection_service.rag_retriever import RAGRetriever
+from src.fraud_detection_service.llm_explainer import LLMExplainer
+from src.fraud_detection_service.embedding_rule_utils import load_and_embed_rules
+
+# --- Configuración y Carga GLOBAL (¡Ejecutar UNA ÚNICA VEZ al inicio de tu aplicación!) ---
+RULES_FILE_PATH = "resources/fraud_rules.json" # Asegúrate de que esta ruta sea correcta
+EMBEDDING_MODEL_NAME = os.environ.get('embedding_model_name', 'nomic-embed-text')
+CHAT_MODEL_NAME = os.environ.get('chat_model_name', 'llama3.1')
+LLM_MODEL_NAME = os.environ.get('llm_model_name', 'llama3.1')
+LLM_MODEL_TEMPERATURE = float(os.environ.get('llm_model_temperature', '0.5'))
+
+# Inicializa todos los componentes clave de tu sistema
+global_embedding_manager = EmbeddingManager(model_name=EMBEDDING_MODEL_NAME)
+global_anomaly_detector = AnomalyDetector(model_name=CHAT_MODEL_NAME)
+global_llm_explainer = LLMExplainer(model_name=LLM_MODEL_NAME, temperature=LLM_MODEL_TEMPERATURE)
+
+# Pre-carga y embebe las reglas de fraude UNA ÚNICA VEZ al inicio
+pre_embedded_rules = load_and_embed_rules(model_name=EMBEDDING_MODEL_NAME, rules_file_path=RULES_FILE_PATH)
+global_rag_retriever = RAGRetriever(fraud_rules_data=pre_embedded_rules)
+
+# --- Ejemplo de procesamiento de una transacción ---
+# Este bloque se ejecutaría cada vez que recibas una nueva transacción
+transaccion_ejemplo = {
+    "TransactionID": "T-3981-XYZ",
+    "TransactionAmount": 12000,
+    "TransactionType": "compra internacional",
+    "Location": "Estambul, Turquía",
+    "DeviceID": "unknown_device",
+    "IPAddress": "188.132.1.1",
+    "CustomerAge": 35,
+    "CustomerOccupation": "ingeniero",
+    "AccountBalance": 10000,
+    "LoginAttempts": 1,
+    "TransactionDuration": 120,
+    "Channel": "web",
+    "Timestamp": "2024-06-15T10:30:00Z"
+}
+
+response = process_transaction(
+    transaction_data=transaccion_ejemplo,
+    embedding_manager=global_embedding_manager,
+    anomaly_detector=global_anomaly_detector,
+    rag_retriever=global_rag_retriever,
+    llm_explainer=global_llm_explainer
+)
+print(response)
+```
+
+-----
+
+## 📦 Ejemplo de Salida
+
+Aquí tienes un ejemplo de cómo se vería la salida JSON para una transacción procesada:
+
+```json
+{
+  "TransactionID": "T-3981-XYZ",
+  "TransactionAmount": 12000,
+  "is_fraudulent": true,
+  "transaction_details_str_for_llm": "Transacción ID: T-3981-XYZ, Monto: 12000.0, Fecha: 2024-06-15, Tipo: compra internacional, Ubicación: Estambul, Turquía, Dispositivo: unknown_device,...",
+  "transaction_embedding_shape": [768],
+  "fraud_context": "Regla 1 (ID: RULE_001_HIGH_VALUE_UNUSUAL_CATEGORY): Transacciones de alto valor en categorías o ubicaciones inusuales. Keywords: monto alto, ubicación inusual, categorías sospechosas. Pasos de mitigación: Solicitar MFA; Contactar al cliente; Bloquear transacción si no se verifica.",
+  "explanation": "La transacción fue detectada como fraudulenta (RIESGO CRÍTICO) por un monto inusualmente alto ($12000) en Estambul, Turquía, una ubicación inusual para el cliente, y realizada desde un dispositivo desconocido. Esto activó la regla de 'Transacciones de alto valor en categorías o ubicaciones inusuales'. Se recomienda aplicar Multi-Factor Authentication (MFA) y contactar al cliente de inmediato para verificar la transacción.",
+  "detected_risk_level": "CRITICAL",
+  "detected_rule_tags": ["Alto Valor", "Ubicación Inusual", "Dispositivo Sospechoso"]
+}
+```
+
+-----
+
+## 🧪 Tests
+
+(Próximamente)
 
 ```bash
-python -m venv venv
-# En Windows:
-.\venv\Scripts\activate
-# En macOS/Linux:
-source venv/bin/activate
-
-pip install -r requirements.txt
-# Si no tienes un requirements.txt, instala manualmente:
-pip install pandas numpy streamlit plotly ollama
+pytest tests/
 ```
 
-### 3. Instalar y Configurar Ollama
+-----
 
-Descarga Ollama desde [ollama.com](https://ollama.com/).
-Una vez instalado, abre tu terminal y descarga el modelo Llama 3.2:
+## 🧭 Roadmap
 
-```bash
-ollama pull llama3.2
-```
+  * [x] Cargar y convertir reglas de fraude en embeddings.
+  * [x] Procesar transacción con detección y explicación.
+  * [x] Implementar matching semántico con RAG.
+  * [x] Integrar con Ollama para Embeddings y LLMs locales.
+  * [ ] Añadir soporte para múltiples proveedores de modelos de embeddings (más allá de Ollama).
+  * [ ] Desarrollar visualizaciones de explicaciones (ej., con Dash o Streamlit).
+  * [ ] Implementar integración con APIs RESTful (Flask / FastAPI) para servir el modelo.
 
-Asegúrate de que el servidor Ollama esté ejecutándose (usualmente se inicia automáticamente después de la instalación). Puedes verificarlo con `ollama run llama3.2` o `ollama serve`.
+-----
 
-### 4. Preparar la Estructura de Datos
+## 🙌 Conclusión
 
-Asegúrate de que tu proyecto tenga la siguiente estructura de directorios:
+Este MVP demuestra de manera efectiva cómo la combinación de **RAG y LLM, potenciada por Ollama**, puede revolucionar la detección de fraude, ofreciendo un sistema:
 
-```
-.
-├── data/
-│   ├── bank_transactions_data_2.csv    # Dataset para entrenar y evaluar el modelo.
-│   └── fraud_rules.json                # Reglas de fraude para el módulo RAG.
-├── src/
-│   ├── __init__.py
-│   ├── app_fraude.py                   # Dashboard interactivo de Streamlit para la visualización.
-│   ├── main_app.py                     # Punto de entrada principal para la aplicación.
-│   ├── process_function.py             # Script para el procesamiento de transacciones.
-│   ├── transaction.py                  # Clase que define la estructura de una transacción bancaria.
-│   └── fraud_detection_service/
-│       ├── __init__.py
-│       ├── anomaly_detector.py         # Módulo central para la detección de anomalías/fraude utilizando LLMs (via Ollama).
-│       ├── embedding_manager.py        # Gestiona la creación y el almacenamiento de embeddings de transacciones.
-│       ├── llm_explainer.py            # Genera explicaciones detalladas para las detecciones de fraude.
-│       └── rag_retriever.py            # Módulo para recuperar contexto relevante (ej. reglas de fraude) para el LLM.
-├── app_main.ipynb                      # Notebook principal para ejecutar la aplicación (desarrollo/pruebas).
-├── fine-tuning.ipynb                   # Notebook para el proceso de fine-tuning del LLM.
-├── README.md                           # Este archivo.
-└── requirements.txt                    # Lista de dependencias del proyecto.
-```
+  * **Inteligente y Contextual**: Va más allá de las reglas rígidas, comprendiendo la semántica de las transacciones y las reglas.
+  * **Explicativo y Práctico**: Proporciona a los analistas de fraude las herramientas y la información que necesitan para tomar decisiones rápidas e informadas.
 
-Coloca tu archivo `fraud_rules.json` (generado previamente) en la carpeta `data/`.
+Este proyecto es una base sólida para auditores, analistas de fraude, instituciones financieras, fintechs y cualquier entidad que busque una solución de detección de fraude avanzada y transparente.
 
-### 5. Ejecutar el Procesamiento de Transacciones
-
-Este script procesará tus datos de transacciones y generará el archivo `processed_transactions_results.jsonl` que será consumido por el dashboard de Streamlit.
-
-Este proceso puede tomar tiempo dependiendo del número de transacciones y la velocidad de tu GPU/CPU, ya que cada transacción implica una llamada al LLM.
-
-### 6. Iniciar el Dashboard de Streamlit
-
-Una vez que el archivo `.jsonl` se haya generado, puedes iniciar la aplicación Streamlit:
-
-```bash
-streamlit run src/app_fraude.py
-```
-
-Se abrirá una nueva pestaña en tu navegador web con el dashboard de `FraudAI`.
-
-## 📂 Estructura del Proyecto
-
-* `src/`: Contiene el código fuente principal del proyecto.
-    * `app_fraude.py`: La aplicación web interactiva desarrollada con Streamlit.
-    * `process_data_for_streamlit.py`: Script para cargar, procesar y guardar los resultados de las transacciones.
-    * `fraud_detection_service/`: Módulos principales del sistema de detección.
-        * `anomaly_detector.py`: Lógica de detección de fraude (usa Ollama Llama 3.2).
-        * `embedding_manager.py`: Gestión de embeddings (simulada para MVP).
-        * `llm_explainer.py`: Genera explicaciones de fraude (usa Ollama Llama 3.2).
-        * `rag_retriever.py`: Recupera contexto de reglas de fraude.
-    * `test_fraud_processing.py`: Contiene la definición de la clase `Transaction` y pruebas de la lógica de procesamiento.
-* `data/`: Contiene los archivos de datos.
-    * `fraud_rules.json`: Base de conocimiento de reglas de fraude.
-    * `processed_transactions_results.jsonl`: Archivo de salida con los resultados procesados.
-* `requirements.txt`: Lista de dependencias de Python.
-* `README.md`: Este archivo.
+-----

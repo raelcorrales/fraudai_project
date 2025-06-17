@@ -30,9 +30,6 @@ def generate_sample_data(num_records=5000): # Aumentado el número de registros 
     """Genera un DataFrame con datos de transacciones de ejemplo con los nombres de columna actualizados."""
     np.random.seed(42) # Para reproducibilidad
 
-    # Definir niveles de riesgo consistentes
-    risk_levels_consistent = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
-
     data = {
         'TransactionID': [f'TXN{i:05d}' for i in range(num_records)],
         'AccountID': [f'ACC{np.random.randint(1, 500):03d}' for _ in range(num_records)], # Más cuentas
@@ -56,11 +53,7 @@ def generate_sample_data(num_records=5000): # Aumentado el número de registros 
         'transaction_details_str_for_llm': ['detalle de transacción de ejemplo' for _ in range(num_records)],
         'transaction_embedding_shape': [np.random.rand(128).tolist() for _ in range(num_records)], # Ejemplo de embedding
         'fraud_context': [np.random.choice([None, 'Actividad inusual en la madrugada', 'Múltiples intentos fallidos de login', 'Compra de alto valor en nueva ubicación', 'Transacción con IP sospechosa', 'Patrón de gasto fuera de lo normal del usuario', 'Dispositivo no reconocido para esta cuenta', 'Velocidad de transacción anómala'], 1, p=[0.8, 0.03, 0.05, 0.02, 0.03, 0.04, 0.02, 0.01])[0] for _ in range(num_records)],
-        'explanation': [np.random.choice([None, 'El sistema detectó un comportamiento anómalo en el patrón de gasto del usuario, sugiriendo un posible fraude. El monto excede los límites habituales del usuario para este tipo de transacción y canal.', 'Alerta por alta duración de la transacción y discrepancia en la dirección IP. La ubicación de la transacción es inconsistente con el historial del usuario.', 'Múltiples intentos de inicio de sesión fallidos seguidos de una transacción exitosa de gran valor. El contexto RAG indica una IP de riesgo conocida asociada a actividades maliciosas.', 'Esta transacción es parte de una cadena de transacciones sospechosas originadas desde un dispositivo no reconocido, con montos y frecuencias inusuales.', 'La transacción ocurrió desde una nueva ubicación geográfica y con un monto elevado, lo cual no es habitual para este AccountID. El LLM sugiere una potencial suplantación de identidad.', 'La combinación de un LoginAttempts alto y un TransactionDuration bajo para un monto significativo activó la alarma. El contexto RAG apunta a una IP proxy.','Comportamiento anómalo: el MerchantID no coincide con los patrones de compra históricos de la cuenta, y la TransactionDuration fue extremadamente corta.'], 1, p=[0.8, 0.05, 0.05, 0.03, 0.03, 0.02, 0.02])[0] for _ in range(num_records)],
-        # Campo simulado para el nivel de riesgo de la regla aplicada
-        'detected_risk_level': [np.random.choice(risk_levels_consistent) if np.random.rand() < 0.2 else None for _ in range(num_records)],
-        # Campo simulado para tags de la regla aplicada
-        'detected_rule_tags': [np.random.choice([['geolocation', 'behavioral'], ['authentication'], ['spending-pattern', 'timing'], ['device']], 1, p=[0.25,0.25,0.25,0.25])[0] if np.random.rand() < 0.1 else None for _ in range(num_records)]
+        'explanation': [np.random.choice([None, 'El sistema detectó un comportamiento anómalo en el patrón de gasto del usuario, sugiriendo un posible fraude. El monto excede los límites habituales del usuario para este tipo de transacción y canal.', 'Alerta por alta duración de la transacción y discrepancia en la dirección IP. La ubicación de la transacción es inconsistente con el historial del usuario.', 'Múltiples intentos de inicio de sesión fallidos seguidos de una transacción exitosa de gran valor. El contexto RAG indica una IP de riesgo conocida asociada a actividades maliciosas.', 'Esta transacción es parte de una cadena de transacciones sospechosas originadas desde un dispositivo no reconocido, con montos y frecuencias inusuales.', 'La transacción ocurrió desde una nueva ubicación geográfica y con un monto elevado, lo cual no es habitual para este AccountID. El LLM sugiere una potencial suplantación de identidad.', 'La combinación de un LoginAttempts alto y un TransactionDuration bajo para un monto significativo activó la alarma. El contexto RAG apunta a una IP proxy.','Comportamiento anómalo: el MerchantID no coincide con los patrones de compra históricos de la cuenta, y la TransactionDuration fue extremadamente corta.'], 1, p=[0.8, 0.05, 0.05, 0.03, 0.03, 0.02, 0.02])[0] for _ in range(num_records)]
     }
 
     df = pd.DataFrame(data)
@@ -79,8 +72,8 @@ def generate_sample_data(num_records=5000): # Aumentado el número de registros 
             df.loc[index, 'AccountBalance'] += row['TransactionAmount']
         df.loc[index, 'AccountBalance'] = max(0, df.loc[index, 'AccountBalance']) # Asegurar no negativos
 
-    # Asegurar que fraud_context, explanation, detected_risk_level y detected_rule_tags sean None si is_fraudulent es False
-    df.loc[df['is_fraudulent'] == False, ['fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags']] = None
+    # Asegurar que fraud_context y explanation sean None si is_fraudulent es False
+    df.loc[df['is_fraudulent'] == False, ['fraud_context', 'explanation']] = None
 
     return df
 
@@ -121,13 +114,15 @@ def load_transactions_data(file_source):
             df['is_fraudulent'] = False
 
         # Asegurar que fraud_context y explanation sean None si is_fraudulent es False
-        # Incluir también los nuevos campos 'detected_risk_level' y 'detected_rule_tags' si existen
-        fraud_related_cols = ['fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags']
-        for col in fraud_related_cols:
-            if col not in df.columns:
-                df[col] = None # Asegurar que la columna exista
-
-        df.loc[df['is_fraudulent'] == False, fraud_related_cols] = None
+        if 'is_fraudulent' in df.columns and 'fraud_context' in df.columns and 'explanation' in df.columns:
+            df.loc[df['is_fraudulent'] == False, ['fraud_context', 'explanation']] = None
+        elif 'is_fraudulent' in df.columns: # Si 'is_fraudulent' existe pero 'fraud_context'/'explanation' no
+             if 'fraud_context' not in df.columns: df['fraud_context'] = None
+             if 'explanation' not in df.columns: df['explanation'] = None
+        else: # Si ninguna de las columnas de fraude existe
+            df['is_fraudulent'] = False
+            df['fraud_context'] = None
+            df['explanation'] = None
 
         return df
     except ValueError as e:
@@ -147,7 +142,7 @@ st.subheader("Carga de Datos")
 uploaded_file = st.file_uploader(
     "Sube tu archivo JSON Lines (.jsonl)",
     type=["jsonl"],
-    help="Arrastra y suelta tu archivo .jsonl aquí o haz clic para buscarlo. Asegúrate de que las columnas `is_fraudulent`, `fraud_context`, `explanation`, `detected_risk_level` y `detected_rule_tags` estén presentes para el análisis de fraude."
+    help="Arrastra y suelta tu archivo .jsonl aquí o haz clic para buscarlo. Asegúrate de que las columnas `is_fraudulent`, `fraud_context` y `explanation` estén presentes para el análisis de fraude."
 )
 
 df_transactions = None
@@ -162,7 +157,7 @@ else:
         st.rerun() # Recargar la app con los datos de ejemplo
 
 if df_transactions is None or df_transactions.empty:
-    st.warning("No hay datos cargados o los datos están vacíos. Por favor, ajusta tus filtros.")
+    st.warning("No hay datos cargados o los datos están vacíos. Por favor, sube un archivo o genera datos de ejemplo.")
     st.stop() # Detener la ejecución si no hay datos
 
 
@@ -226,13 +221,13 @@ if df_filtered.empty:
 st.info(f"Mostrando {len(df_filtered)} transacciones después de aplicar filtros.")
 
 # --- Pestañas para organizar el dashboard ---
-tab1, tab2, tab3 = st.tabs(["📊 Visión General", "🔒 Ciberseguridad y Fraude", "👥 Insights de Cliente"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 Visión General", "🔒 Ciberseguridad y Fraude", "👥 Insights de Cliente", "📈 Análisis Detallado"])
 
 with tab1:
     st.header("Visión General del Rendimiento Transaccional")
     st.markdown("""
-    Esta sección proporciona una visión general del rendimiento de las transacciones, incluyendo métricas clave, tendencias históricas y distribución de transacciones.
-    Aquí podrás explorar el volumen total transaccionado, el número de transacciones y la distribución por tipo y canal.
+    Esta sección ofrece una **vista rápida y de alto nivel** del rendimiento general de las transacciones.
+    Ideal para **C-levels** y equipos que necesitan comprender el pulso del negocio de un vistazo.
     """)
 
     # Métricas Clave
@@ -312,8 +307,8 @@ with tab1:
 with tab2:
     st.header("🔒 Ciberseguridad y Fraude: Análisis Avanzado")
     st.markdown("""
-    Esta sección está diseñada para **analistas de seguridad y equipos de fraude**. Proporciona una visión profunda de las transacciones fraudulentas, incluyendo métricas clave, visualizaciones de anomalías y tendencias de fraude.
-    Aquí podrás explorar patrones de fraude, identificar transacciones sospechosas y comprender el contexto detrás de las alertas de fraude.        
+    Esta sección es crítica para **expertos en ciberseguridad** y **C-Levels** para detectar, analizar y comprender profundamente
+    los patrones y las razones detrás de las transacciones fraudulentas. **¡Cada dato aquí es un indicio potencial!**
     """)
 
     fraud_df = df_filtered[df_filtered['is_fraudulent'] == True]
@@ -348,7 +343,7 @@ with tab2:
                 fig_amount_duration = px.scatter(df_filtered, x='TransactionDuration', y='TransactionAmount', color='is_fraudulent',
                                                  title='Monto vs. Duración de la Transacción',
                                                  labels={'TransactionDuration': 'Duración (segundos)', 'TransactionAmount': 'Monto ($)'},
-                                                 hover_data=['TransactionID', 'AccountID', 'TransactionType', 'fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags'],
+                                                 hover_data=['TransactionID', 'AccountID', 'TransactionType', 'fraud_context', 'explanation'],
                                                  color_discrete_map={True: 'red', False: 'blue'},
                                                  size='TransactionAmount', log_y=True)
                 st.plotly_chart(fig_amount_duration, use_container_width=True)
@@ -359,7 +354,7 @@ with tab2:
                 fig_login_amount = px.scatter(df_filtered, x='LoginAttempts', y='TransactionAmount', color='is_fraudulent',
                                               title='Monto vs. Intentos de Inicio de Sesión',
                                               labels={'LoginAttempts': 'Intentos de Inicio de Sesión', 'TransactionAmount': 'Monto ($)'},
-                                              hover_data=['TransactionID', 'AccountID', 'TransactionType', 'Location', 'fraud_context', 'explanation', 'detected_risk_level', 'detected_rule_tags'],
+                                              hover_data=['TransactionID', 'AccountID', 'TransactionType', 'Location', 'fraud_context', 'explanation'],
                                               color_discrete_map={True: 'red', False: 'blue'},
                                               size='TransactionAmount', log_y=True)
                 st.plotly_chart(fig_login_amount, use_container_width=True)
@@ -436,7 +431,7 @@ with tab2:
         Los **embeddings de transacciones** representan las características de cada transacción en un espacio multidimensional.
         Al reducirlos a 2D con **t-SNE**, podemos visualizar **clusters de transacciones similares**.
         Observa cómo los **puntos rojos (fraudulentos)** tienden a agruparse, indicando patrones detectados por el modelo.
-        Pasa el cursor sobre los puntos para ver el **`fraud_context` y la `explanation`**, así como el `detected_risk_level` y `detected_rule_tags`.
+        Pasa el cursor sobre los puntos para ver el **`fraud_context` y la `explanation`**.
         """)
         if TSNE_AVAILABLE and 'transaction_embedding_shape' in df_filtered.columns and len(df_filtered) >= 50: # TSNE necesita al menos 2*perplexity + 1 data points
             try:
@@ -457,9 +452,7 @@ with tab2:
                             'TransactionID', 'TransactionAmount', 'TransactionDate', 'AccountID',
                             alt.Tooltip('is_fraudulent:N', title='Es Fraudulenta'),
                             alt.Tooltip('fraud_context:N', title='Contexto Fraude'),
-                            alt.Tooltip('explanation:N', title='Explicación'),
-                            alt.Tooltip('detected_risk_level:N', title='Nivel de Riesgo'),
-                            alt.Tooltip('detected_rule_tags:N', title='Tags de Regla')
+                            alt.Tooltip('explanation:N', title='Explicación')
                         ]
                     ).properties(
                         title='Embeddings de Transacciones Reducidas con t-SNE'
@@ -478,9 +471,7 @@ with tab2:
                             'TransactionID', 'TransactionAmount', 'TransactionDate', 'AccountID',
                             alt.Tooltip('is_fraudulent:N', title='Es Fraudulenta'),
                             alt.Tooltip('fraud_context:N', title='Contexto Fraude'),
-                            alt.Tooltip('explanation:N', title='Explicación'),
-                            alt.Tooltip('detected_risk_level:N', title='Nivel de Riesgo'),
-                            alt.Tooltip('detected_rule_tags:N', title='Tags de Regla')
+                            alt.Tooltip('explanation:N', title='Explicación')
                         ]
                     ).properties(
                         title='Embeddings de Transacciones (Originales 2D o menos)'
@@ -498,17 +489,15 @@ with tab2:
         st.write("""
         Esta es la información más valiosa: el **porqué** detrás de la detección de fraude.
         El **contexto RAG** te muestra los datos relevantes que el modelo usó, y la **explicación del LLM**
-        traduce esa información en un lenguaje comprensible. También se muestran el **nivel de riesgo** y los **tags** asociados a la regla detectada.
+        traduce esa información en un lenguaje comprensible.
         """)
 
         if not fraud_df.empty:
             fraud_display_cols = [
                 'TransactionID', 'TransactionDate', 'TransactionAmount',
                 'AccountID', 'Location', 'LoginAttempts', 'Channel',
-                'fraud_context', 'explanation', 'IP Address', 'MerchantID', 'DeviceID',
-                'detected_risk_level', 'detected_rule_tags' # Nuevos campos para mostrar
+                'fraud_context', 'explanation', 'IP Address', 'MerchantID', 'DeviceID'
             ]
-            # Filtrar columnas para asegurar que solo existen en el DataFrame
             fraud_display_df = fraud_df[[col for col in fraud_display_cols if col in fraud_df.columns]].copy()
 
             # Ordenar por fecha para ver los fraudes más recientes primero
@@ -530,9 +519,7 @@ with tab2:
                     "MerchantID": st.column_config.Column("Merchant ID"),
                     "DeviceID": st.column_config.Column("Device ID"),
                     "fraud_context": st.column_config.Column("Contexto RAG", width="medium"),
-                    "explanation": st.column_config.Column("Explicación LLM", width="large"),
-                    "detected_risk_level": st.column_config.Column("Nivel de Riesgo", width="small"), # Nuevo
-                    "detected_rule_tags": st.column_config.ListColumn("Tags de Regla", width="medium") # Nuevo
+                    "explanation": st.column_config.Column("Explicación LLM", width="large")
                 }
             )
 
@@ -546,7 +533,7 @@ with tab2:
                 selected_fraud_row = fraud_df[fraud_df['TransactionID'] == selected_fraud_txn_id].iloc[0]
                 st.markdown(f"### **Detalles Expandidos para TransactionID: `{selected_fraud_row['TransactionID']}`**")
 
-                col_det1, col_det2, col_det3 = st.columns(3) # Añadir columna para riesgo y tags
+                col_det1, col_det2 = st.columns(2)
                 with col_det1:
                     st.markdown(f"**Fecha:** `{selected_fraud_row['TransactionDate'].strftime('%Y-%m-%d %H:%M:%S')}`")
                     st.markdown(f"**Monto:** `${selected_fraud_row['TransactionAmount']:,.2f}`")
@@ -559,16 +546,6 @@ with tab2:
                     st.markdown(f"**Dirección IP:** `{selected_fraud_row['IP Address']}`")
                     st.markdown(f"**Merchant ID:** `{selected_fraud_row['MerchantID']}`")
                     st.markdown(f"**Device ID:** `{selected_fraud_row['DeviceID']}`")
-                with col_det3: # Detalles adicionales de la regla
-                    if pd.notna(selected_fraud_row['detected_risk_level']):
-                        st.markdown(f"**Nivel de Riesgo Detectado:** `{selected_fraud_row['detected_risk_level']}`")
-                    else:
-                        st.markdown("**Nivel de Riesgo Detectado:** `N/A`")
-                    if selected_fraud_row['detected_rule_tags'] is not None and isinstance(selected_fraud_row['detected_rule_tags'], list):
-                        st.markdown(f"**Tags de Regla:** `{', '.join(selected_fraud_row['detected_rule_tags'])}`")
-                    else:
-                        st.markdown("**Tags de Regla:** `N/A`")
-
 
                 st.markdown("#### **Contexto de Fraude (RAG)**")
                 if pd.notna(selected_fraud_row['fraud_context']) and selected_fraud_row['fraud_context']:
@@ -593,9 +570,8 @@ with tab2:
 with tab3:
     st.header("👥 Insights del Cliente: Conoce a tus Usuarios")
     st.markdown("""
-    Esta sección está diseñada para **analistas de negocio y marketing**. Proporciona una visión profunda del comportamiento del cliente, incluyendo la distribución por edad, ocupación y patrones de gasto.
-    Aquí podrás explorar cómo los diferentes segmentos de clientes interactúan con tus servicios, qué productos prefieren y cómo se distribuyen geográficamente.
-    También se incluyen visualizaciones de la distribución de transacciones por tipo y canal, así como análisis de patrones de gasto por demografía.
+    Esta sección profundiza en el **comportamiento y las características demográficas de tus clientes**.
+    Información crucial para **equipos de ventas y marketing**, así como para la **planificación estratégica de C-levels**.
     """)
 
     col_cust_overview1, col_cust_overview2 = st.columns(2)
@@ -635,3 +611,86 @@ with tab3:
             st.plotly_chart(fig_avg_occ, use_container_width=True)
         else:
             st.warning("Columnas 'TransactionAmount' o 'CustomerOccupation' no encontradas.")
+    with col_cust_spend2:
+        if 'TransactionAmount' in df_filtered.columns and 'CustomerAge' in df_filtered.columns:
+            fig_amount_age = px.scatter(df_filtered, x='CustomerAge', y='TransactionAmount',
+                                        title='Monto de Transacción vs. Edad del Cliente',
+                                        labels={'CustomerAge': 'Edad del Cliente', 'TransactionAmount': 'Importe ($)'},
+                                        hover_data=['TransactionType', 'AccountBalance', 'CustomerOccupation'],
+                                        color='CustomerOccupation', size='TransactionAmount', opacity=0.7)
+            st.plotly_chart(fig_amount_age, use_container_width=True)
+        else:
+            st.warning("Columnas 'TransactionAmount' o 'CustomerAge' no encontradas.")
+
+    st.markdown("---")
+    st.subheader("Actividad y Saldo de Cuentas")
+    col_cust_acc1, col_cust_acc2 = st.columns(2)
+    with col_cust_acc1:
+        st.subheader("Frecuencia de Transacciones por Cuenta")
+        if 'PreviousTransactionDate' in df_filtered.columns and 'TransactionDate' in df_filtered.columns:
+            df_filtered['TransactionFrequencyDays'] = (df_filtered['TransactionDate'] - df_filtered['PreviousTransactionDate']).dt.days
+            df_filtered['TransactionFrequencyDays'] = df_filtered['TransactionFrequencyDays'].fillna(
+                df_filtered['TransactionFrequencyDays'].median() # Rellenar para primeras transacciones
+            )
+            fig_freq_hist = px.histogram(df_filtered, x='TransactionFrequencyDays', nbins=50,
+                                         title='Frecuencia de Transacciones (Días entre TXNs)',
+                                         labels={'TransactionFrequencyDays': 'Días desde Transacción Previa', 'count': 'Número de Transacciones'})
+            st.plotly_chart(fig_freq_hist, use_container_width=True)
+        else:
+            st.warning("Columnas de fecha de transacción (TransactionDate/PreviousTransactionDate) no encontradas.")
+    with col_cust_acc2:
+        st.subheader("Distribución de Saldo por Ocupación")
+        if 'AccountBalance' in df_filtered.columns and 'CustomerOccupation' in df_filtered.columns:
+            fig_balance_occupation = px.box(df_filtered, x='CustomerOccupation', y='AccountBalance',
+                                            title='Distribución de Saldo de Cuenta por Ocupación',
+                                            labels={'CustomerOccupation': 'Ocupación', 'AccountBalance': 'Saldo de Cuenta ($)'},
+                                            color='CustomerOccupation', color_discrete_sequence=px.colors.qualitative.Dark2)
+            st.plotly_chart(fig_balance_occupation, use_container_width=True)
+        else:
+            st.warning("Columnas 'AccountBalance' o 'CustomerOccupation' no encontradas.")
+
+    st.markdown("---")
+    st.subheader("Principales Clientes por Volumen Transaccionado")
+    st.write("Identifica a tus clientes más activos y valiosos para estrategias de retención o beneficios.")
+    if 'AccountID' in df_filtered.columns and 'TransactionAmount' in df_filtered.columns:
+        top_n_accounts = st.slider("Mostrar Top N Cuentas:", 5, 100, 15, key='top_n_accounts_tab3')
+        account_summary = df_filtered.groupby('AccountID').agg(
+            Total_Transacciones=('TransactionID', 'count'),
+            Volumen_Transaccionado=('TransactionAmount', 'sum'),
+            Saldo_Actual=('AccountBalance', 'last') # Tomar el último saldo registrado
+        ).nlargest(top_n_accounts, 'Volumen_Transaccionado').reset_index()
+
+        fig_top_accounts = px.bar(account_summary, x='AccountID', y='Volumen_Transaccionado',
+                                  title=f'Top {top_n_accounts} Cuentas por Volumen Transaccionado',
+                                  labels={'AccountID': 'ID de Cuenta', 'Volumen_Transaccionado': 'Volumen Transaccionado ($)'},
+                                  hover_data=['Total_Transacciones', 'Saldo_Actual'],
+                                  color='Volumen_Transaccionado', color_continuous_scale=px.colors.sequential.Viridis)
+        st.plotly_chart(fig_top_accounts, use_container_width=True)
+    else:
+        st.warning("Columnas 'AccountID' o 'TransactionAmount' no encontradas.")
+
+with tab4:
+    st.header("📈 Análisis Detallado de Transacciones")
+    st.markdown("""
+    Esta tabla interactiva te permite explorar los detalles de cada transacción individual, con capacidades de búsqueda,
+    filtrado y ordenación. Es ideal para una inspección exhaustiva de cualquier transacción.
+    """)
+
+    st.subheader("Tabla de Transacciones Filtradas")
+    st.dataframe(df_filtered, use_container_width=True, height=600)
+
+    st.subheader("Exportar Datos Filtrados")
+    csv = df_filtered.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Descargar datos filtrados como CSV",
+        data=csv,
+        file_name='transacciones_filtradas.csv',
+        mime='text/csv',
+    )
+
+
+# Agrega un botón para limpiar la caché y forzar una recarga (útil en desarrollo)
+st.markdown("---")
+if st.button("Limpiar Caché de Datos y Reiniciar Dashboard"):
+    st.cache_data.clear()
+    st.rerun() # Reinicia la aplicación para reflejar la caché limpia
