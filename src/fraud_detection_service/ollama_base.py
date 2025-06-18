@@ -56,3 +56,13 @@ class OllamaBase:
             return ollama.embeddings(model=self.model_name, prompt=prompt)
         
         return self._resilience_wrapper(_call_embeddings)
+
+    def chat_request(self, messages: list, options: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Realiza una solicitud de chat a Ollama con resiliencia.
+        Este método es genérico para llamadas a ollama.chat.
+        """
+        def _call_chat():
+            return ollama.chat(model=self.model_name, messages=messages, options=options)
+        
+        return self._resilience_wrapper(_call_chat)

@@ -1,8 +1,4 @@
-Okay, ¡aquí tienes el **README.md** completamente actualizado y listo para tu proyecto\! Incorpora todos los cambios que discutimos, destacando la integración con Ollama y las mejoras en la explicación del flujo de trabajo.
-
------
-
-# 🛡️ Fraud Detection RAG + LLM
+# Sistema Inteligente de Detección de Fraudes con RAG
 
 Este proyecto implementa un sistema inteligente de **detección de fraudes financieros** combinando lo mejor del aprendizaje automático, recuperación de conocimiento (RAG) y generación de lenguaje natural (LLM).
 
@@ -12,12 +8,41 @@ Este proyecto implementa un sistema inteligente de **detección de fraudes finan
 
 ## 🚀 Características Principales
 
-  * 🧠 **Embeddings Semánticos**: Representación vectorial avanzada para transacciones y reglas de fraude, utilizando **Ollama**.
-  * ⚠️ **Detección de Anomalías con LLM**: Identifica transacciones sospechosas mediante el razonamiento de un Modelo de Lenguaje Grande.
-  * 📚 **RAG Semántico**: Recupera reglas de fraude relevantes usando la similitud entre embeddings para un contexto preciso.
-  * 💬 **Explicaciones Generadas por IA**: Ofrece razones claras y detalladas en lenguaje natural sobre por qué una transacción es considerada fraudulenta.
-  * 🔌 **Diseño Modular y Extensible**: Componentes bien definidos para facilitar la adaptación y el crecimiento del sistema.
+- **Embeddings Semánticos**: Representación vectorial avanzada de transacciones y reglas de fraude utilizando modelos de Ollama.
+- **Detección de Anomalías**: Identificación de comportamientos transaccionales sospechosos a través de modelos de lenguaje grande (LLM).
+- **Recuperación Semántica de Reglas (RAG)**: Asociación contextual entre transacción y reglas relevantes a partir de embeddings.
+- **Explicaciones Generadas por IA**: Justificaciones claras y adaptadas para analistas sobre las decisiones tomadas.
+- **Pipeline Modular**: Componentes desacoplados y fácilmente extensibles.
+- **Integración con Ollama**: Toda la inteligencia artificial (embeddings y LLM) corre de forma local, lo que maximiza la privacidad y la flexibilidad.
 
+-----
+
+## Dataset (Bank Transaction Dataset for Fraud Detection)
+
+>Detailed Analysis of Transactional Behavior and Anomaly Detection
+
+**URL**: [https://www.kaggle.com/datasets/valakhorasani/bank-transaction-dataset-for-fraud-detection?resource=download](https://www.kaggle.com/datasets/valakhorasani/bank-transaction-dataset-for-fraud-detection?resource=download)
+
+### Acerca del conjunto de datos
+Este conjunto de datos ofrece una visión detallada del comportamiento transaccional y los patrones de actividad financiera, ideal para explorar la detección de fraudes y la identificación de anomalías. Contiene **2512** muestras de datos de transacciones, que abarcan diversos atributos de las transacciones, datos demográficos de los clientes y patrones de uso. Cada entrada ofrece información completa sobre el comportamiento de las transacciones, lo que permite el análisis para aplicaciones de seguridad financiera y detección de fraudes.
+
+### Características principales:
+- **TransactionID**: Identificador alfanumérico único para cada transacción.
+- **AccountID**: Identificador único para cada cuenta, con múltiples transacciones por cuenta.
+- **TransactionAmount**: Valor monetario de cada transacción, desde pequeños gastos cotidianos hasta compras más importantes.
+- **TransactionDate**: Marca de tiempo de cada transacción, que captura la fecha y la hora.
+- **TransactionType**: Campo categórico que indica transacciones de "Crédito" o "Débito".
+- **Location**: Ubicación geográfica de la transacción, representada por nombres de ciudades de EE. UU.
+- **DeviceID**: Identificador alfanumérico de los dispositivos utilizados para realizar la transacción.
+- **IP Address**: Dirección IPv4 asociada a la transacción, con cambios ocasionales para algunas cuentas.
+- **MerchantID**: Identificador único para comerciantes, que muestra los comerciantes preferidos y atípicos para cada cuenta.
+- **AccountBalance**: Saldo de la cuenta después de la transacción, con correlaciones lógicas según el tipo y el importe de la transacción.
+- **PreviousTransactionDate**: Marca de tiempo de la última transacción de la cuenta, que ayuda a calcular la frecuencia de las transacciones.
+- **Channel**: Canal a través del cual se realizó la transacción (p. ej., en línea, cajero automático, sucursal).
+- **CustomerAge**: Edad del titular de la cuenta, con agrupaciones lógicas según su ocupación.
+- **CustomerOccupation**: Ocupación del titular de la cuenta (p. ej., médico, ingeniero, estudiante, jubilado), que refleja los patrones de ingresos.
+- **TransactionDuration**: Duración de la transacción en segundos, que varía según el tipo de transacción.
+- **LoginAttempts**: Número de intentos de inicio de sesión antes de la transacción; los valores más altos indican posibles anomalías.
 -----
 
 ## 📁 Estructura del Proyecto
@@ -43,10 +68,10 @@ resources/
 
 ## 🧠 Tecnologías Utilizadas
 
-  * **Python 3.9+**
-  * **[NumPy](https://numpy.org/)**: Para operaciones numéricas eficientes con embeddings.
-  * **[scikit-learn](https://scikit-learn.org/)**: Principalmente para el cálculo de similitud coseno.
-  * **[Ollama](https://ollama.com/)**: Plataforma fundamental para la ejecución local de Modelos de Lenguaje Grandes (LLMs) y modelos de embeddings.
+- **Python 3.9+**
+- **Ollama**: Motor de modelos LLM y generación de embeddings local.
+- **FastAPI**: (opcional) Para servir el pipeline como API REST.
+- **NumPy** **Pandas**: Manipulación de datos tabulares.
 
 -----
 
@@ -59,111 +84,55 @@ Asegúrate de tener **Ollama instalado y corriendo** en tu sistema. Luego, desca
 2.  **Descarga los modelos**:
 
       * Para embeddings (CRÍTICO: usa un modelo diseñado para embeddings):
-        ```bash
+
+		```bash
         ollama pull nomic-embed-text
         ```
+		
       * Para LLMs (detección y explicación):
-        ```bash
+        
+		```bash
         ollama pull llama3.1
         ```
 
 3.  **Variables de Entorno**: Crea un archivo `.env` en la raíz de tu proyecto o define las siguientes variables de entorno:
 
-    | Variable               | Descripción                                                                          | Valor por Defecto   |
-    | :--------------------- | :----------------------------------------------------------------------------------- | :------------------ |
-    | `llm_model_name`       | Nombre del modelo LLM de Ollama para la **generación de explicaciones**.             | `llama3.1`          |
-    | `llm_model_temperature`| Temperatura de creatividad del LLM para explicaciones (0.0 a 1.0).                  | `0.5`               |
-    | `chat_model_name`      | Nombre del modelo LLM de Ollama para la **detección inicial de anomalías**.         | `llama3.1`          |
-    | `embedding_model_name` | Nombre del modelo de **embeddings** de Ollama (debe ser un modelo de embeddings).  | `nomic-embed-text`  |
+| Variable               | Descripción                                                                          | Valor por Defecto   |
+| :--------------------- | :----------------------------------------------------------------------------------- | :------------------ |
+| `llm_model_name`       | Nombre del modelo LLM de Ollama para la **generación de explicaciones**.             | `llama3.1`          |
+| `llm_model_temperature`| Temperatura de creatividad del LLM para explicaciones (0.0 a 1.0).                  | `0.5`               |
+| `chat_model_name`      | Nombre del modelo LLM de Ollama para la **detección inicial de anomalías**.         | `llama3.1`          |
+| `embedding_model_name` | Nombre del modelo de **embeddings** de Ollama (debe ser un modelo de embeddings).  | `nomic-embed-text`  |
 
 -----
 
-## ▶️ Ejecución del Proyecto
+## 🏗️ Detalles de Implementación
 
-1.  **Clona el repositorio**:
+### 1. **Embebido de Reglas de Fraude**
+Las reglas de negocio del banco están estructuradas en un archivo JSON. Estas reglas se convierten en embeddings vectoriales usando el modelo configurado en Ollama. Esto permite hacer matching semántico, no solo por palabras clave.
 
-    ```bash
-    git clone https://github.com/raelcorrales/fraud-detection-rag-llm.git
-    cd fraud-detection-rag-llm
-    ```
+### 2. **Procesamiento de una Transacción**
+El pipeline sigue estos pasos:
+- **Transformación y preprocesamiento** de la transacción.
+- **Generación de embedding** de la transacción.
+- **Detección de anomalía** vía LLM (razonamiento contextual).
+- **Recuperación de reglas relevantes** (RAG), combinando heurística y similitud de embeddings.
+- **Generación de explicación** con LLM para justificar el resultado.
+- **Asignación de nivel de riesgo y tags** en base a reglas o inferencia del LLM.
+- **Estructuración de la respuesta** para consumo humano o automatizado.
 
-2.  **Instala las dependencias de Python**:
+### 3. **Explicaciones de IA**
+El sistema genera textos explicativos para cada caso de fraude detectado, fundamentados en el contexto, reglas y características de la transacción.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+### 4. **Resiliencia y Robustez**
+Las llamadas a Ollama están protegidas con lógica de reintentos exponenciales para maximizar la robustez en producción.
 
-3.  **Verifica que Ollama esté corriendo**:
-
-    ```bash
-    ollama list
-    ```
-
-    (Deberías ver los modelos `nomic-embed-text` y `llama3.1` listados).
-
-4.  **Ejecuta el script principal**:
-
-    ```bash
-    python src/main_app.py
-    ```
+### 5. **API RESTful**
+El sistema puede exponerse como un servicio web para procesar transacciones individuales vía HTTP POST, devolviendo todo el análisis contextual y explicativo en formato JSON.
 
 ### Integración en tu Aplicación
 
 Puedes importar la función `process_transaction` y usarla en tu propia aplicación. **Es crucial inicializar los componentes de Ollama una sola vez** para optimizar el rendimiento y evitar inicializaciones redundantes.
-
-```python
-# Ejemplo de uso en tu script principal o controlador de API
-import os
-from src.process_function import process_transaction
-from src.fraud_detection_service.embedding_manager import EmbeddingManager
-from src.fraud_detection_service.anomaly_detector import AnomalyDetector
-from src.fraud_detection_service.rag_retriever import RAGRetriever
-from src.fraud_detection_service.llm_explainer import LLMExplainer
-from src.fraud_detection_service.embedding_rule_utils import load_and_embed_rules
-
-# --- Configuración y Carga GLOBAL (¡Ejecutar UNA ÚNICA VEZ al inicio de tu aplicación!) ---
-RULES_FILE_PATH = "resources/fraud_rules.json" # Asegúrate de que esta ruta sea correcta
-EMBEDDING_MODEL_NAME = os.environ.get('embedding_model_name', 'nomic-embed-text')
-CHAT_MODEL_NAME = os.environ.get('chat_model_name', 'llama3.1')
-LLM_MODEL_NAME = os.environ.get('llm_model_name', 'llama3.1')
-LLM_MODEL_TEMPERATURE = float(os.environ.get('llm_model_temperature', '0.5'))
-
-# Inicializa todos los componentes clave de tu sistema
-global_embedding_manager = EmbeddingManager(model_name=EMBEDDING_MODEL_NAME)
-global_anomaly_detector = AnomalyDetector(model_name=CHAT_MODEL_NAME)
-global_llm_explainer = LLMExplainer(model_name=LLM_MODEL_NAME, temperature=LLM_MODEL_TEMPERATURE)
-
-# Pre-carga y embebe las reglas de fraude UNA ÚNICA VEZ al inicio
-pre_embedded_rules = load_and_embed_rules(model_name=EMBEDDING_MODEL_NAME, rules_file_path=RULES_FILE_PATH)
-global_rag_retriever = RAGRetriever(fraud_rules_data=pre_embedded_rules)
-
-# --- Ejemplo de procesamiento de una transacción ---
-# Este bloque se ejecutaría cada vez que recibas una nueva transacción
-transaccion_ejemplo = {
-    "TransactionID": "T-3981-XYZ",
-    "TransactionAmount": 12000,
-    "TransactionType": "compra internacional",
-    "Location": "Estambul, Turquía",
-    "DeviceID": "unknown_device",
-    "IPAddress": "188.132.1.1",
-    "CustomerAge": 35,
-    "CustomerOccupation": "ingeniero",
-    "AccountBalance": 10000,
-    "LoginAttempts": 1,
-    "TransactionDuration": 120,
-    "Channel": "web",
-    "Timestamp": "2024-06-15T10:30:00Z"
-}
-
-response = process_transaction(
-    transaction_data=transaccion_ejemplo,
-    embedding_manager=global_embedding_manager,
-    anomaly_detector=global_anomaly_detector,
-    rag_retriever=global_rag_retriever,
-    llm_explainer=global_llm_explainer
-)
-print(response)
-```
 
 -----
 
@@ -184,28 +153,6 @@ Aquí tienes un ejemplo de cómo se vería la salida JSON para una transacción 
   "detected_rule_tags": ["Alto Valor", "Ubicación Inusual", "Dispositivo Sospechoso"]
 }
 ```
-
------
-
-## 🧪 Tests
-
-(Próximamente)
-
-```bash
-pytest tests/
-```
-
------
-
-## 🧭 Roadmap
-
-  * [x] Cargar y convertir reglas de fraude en embeddings.
-  * [x] Procesar transacción con detección y explicación.
-  * [x] Implementar matching semántico con RAG.
-  * [x] Integrar con Ollama para Embeddings y LLMs locales.
-  * [ ] Añadir soporte para múltiples proveedores de modelos de embeddings (más allá de Ollama).
-  * [ ] Desarrollar visualizaciones de explicaciones (ej., con Dash o Streamlit).
-  * [ ] Implementar integración con APIs RESTful (Flask / FastAPI) para servir el modelo.
 
 -----
 
